@@ -1,13 +1,24 @@
 <template>
   <aside class="bg-white shadow-soft p-4 md:p-5 rounded-3xl">
-    <div class="flex justify-between items-center mb-4">
-      <h3 class="font-bold text-slate-900 text-lg">Question Navigator</h3>
-      <span class="font-medium text-slate-500 text-sm"
-        >{{ answeredCount }}/{{ total }} answered</span
+    <div class="flex justify-between items-center gap-3 mb-4">
+      <div>
+        <h3 class="font-bold text-slate-900 text-lg">Question Navigator</h3>
+        <span class="font-medium text-slate-500 text-sm">
+          {{ answeredCount }}/{{ total }} answered
+        </span>
+      </div>
+
+      <button
+        type="button"
+        class="md:hidden inline-flex items-center hover:bg-slate-100 px-3 py-2 border border-slate-300 rounded-xl font-semibold text-slate-700 text-sm transition"
+        @click="$emit('toggle')"
       >
+        {{ isOpen ? "Hide" : "Show" }}
+      </button>
     </div>
 
     <div
+      v-show="isOpen"
       class="gap-2 grid grid-cols-5 sm:grid-cols-8 lg:grid-cols-5 xl:grid-cols-6"
     >
       <button
@@ -46,9 +57,13 @@ const props = defineProps({
     type: Number,
     required: true,
   },
+  isOpen: {
+    type: Boolean,
+    default: true,
+  },
 })
 
-defineEmits(["jump"])
+defineEmits(["jump", "toggle"])
 
 function buttonClass(questionId, index) {
   const isCurrent = props.currentIndex === index
