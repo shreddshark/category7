@@ -99,7 +99,9 @@
             :current-index="currentIndex"
             :answered-count="answeredCount"
             :total="questions.length"
+            :is-open="mobileNavOpen"
             @jump="goToQuestion"
+            @toggle="mobileNavOpen = !mobileNavOpen"
           />
 
           <div class="space-y-6">
@@ -157,6 +159,8 @@ import { useExamEngine } from "./composables/useExamEngine"
 
 const showDisclaimer = ref(true)
 const agreed = ref(false)
+const showMobileNav = ref(false)
+const mobileNavOpen = ref(true)
 
 const {
   questions,

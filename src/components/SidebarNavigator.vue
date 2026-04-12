@@ -1,26 +1,23 @@
 <template>
   <aside class="bg-white shadow-soft p-4 md:p-5 rounded-3xl">
-    <div class="flex justify-between items-center gap-3 mb-4">
-      <div>
+    <div class="flex justify-between items-center gap-3">
+      <div class="min-w-0">
         <h3 class="font-bold text-slate-900 text-lg">Question Navigator</h3>
-        <span class="font-medium text-slate-500 text-sm">
+        <p class="font-medium text-slate-500 text-sm">
           {{ answeredCount }}/{{ total }} answered
-        </span>
+        </p>
       </div>
 
       <button
         type="button"
-        class="md:hidden inline-flex items-center hover:bg-slate-100 px-3 py-2 border border-slate-300 rounded-xl font-semibold text-slate-700 text-sm transition"
+        class="md:hidden inline-flex items-center hover:bg-slate-100 px-3 py-2 border border-slate-300 rounded-xl font-semibold text-slate-700 text-sm transition shrink-0"
         @click="$emit('toggle')"
       >
         {{ isOpen ? "Hide" : "Show" }}
       </button>
     </div>
 
-    <div
-      v-show="isOpen"
-      class="gap-2 grid grid-cols-5 sm:grid-cols-8 lg:grid-cols-5 xl:grid-cols-6"
-    >
+    <div v-show="isOpen" class="gap-2 grid grid-cols-5 sm:grid-cols-6 mt-4">
       <button
         v-for="(question, index) in questions"
         :key="question.id"
@@ -59,7 +56,7 @@ const props = defineProps({
   },
   isOpen: {
     type: Boolean,
-    default: true,
+    default: false,
   },
 })
 
