@@ -137,17 +137,22 @@ export function useExamEngine() {
     }
   }
 
-  function initializeExam() {
+  function initializeExam(options = {}) {
+    const questionCount = options.questionCount ?? EXAM_LENGTH
+    const timeLimitMinutes =
+      options.timeLimitMinutes ?? EXAM_DURATION_SECONDS / 60
+
     questions.value = selectWeightedQuestions(
       fullPool,
       categoryWeights,
-      EXAM_LENGTH,
+      questionCount,
     )
+
     answers.value = {}
     currentIndex.value = 0
     completed.value = false
     results.value = null
-    timeRemaining.value = EXAM_DURATION_SECONDS
+    timeRemaining.value = timeLimitMinutes * 60
     started.value = true
     startTimer()
   }

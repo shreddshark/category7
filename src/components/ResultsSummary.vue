@@ -1,3 +1,48 @@
+<script setup>
+import { ref } from "vue"
+
+const props = defineProps({
+  results: {
+    type: Object,
+    required: true,
+  },
+  passPercent: {
+    type: Number,
+    required: true,
+  },
+})
+
+defineEmits(["go-home", "retake-exam"])
+
+const isSummaryOpen = ref(false)
+
+function formatCategory(category) {
+  return category
+    .replace(/([A-Z])/g, " $1")
+    .replace(/^./, (char) => char.toUpperCase())
+}
+
+function isCorrect(question) {
+  return props.results.answers[question.id] === question.correctAnswer
+}
+
+function isUnanswered(question) {
+  return typeof props.results.answers[question.id] === "undefined"
+}
+
+function badgeLabel(question) {
+  if (isUnanswered(question)) return "Unanswered"
+  if (isCorrect(question)) return "Correct"
+  return "Incorrect"
+}
+
+function badgeClass(question) {
+  if (isUnanswered(question)) return "bg-amber-100 text-amber-800"
+  if (isCorrect(question)) return "bg-emerald-100 text-emerald-800"
+  return "bg-red-100 text-red-800"
+}
+</script>
+
 <template>
   <section class="space-y-6">
     <div class="bg-white shadow-soft p-6 md:p-8 rounded-3xl">
@@ -81,41 +126,58 @@
         </button>
       </div>
     </div>
-    <!--Add back at a later date-->
-    <!-- <div class="bg-white shadow-soft p-6 md:p-8 rounded-3xl">
-      <h3 class="font-bold text-slate-900 text-xl">Category Breakdown</h3>
 
-      <div class="gap-4 grid md:grid-cols-2 mt-5">
-        <div
-          v-for="(stats, category) in results.categoryStats"
-          :key="category"
-          class="p-4 border border-slate-200 rounded-2xl"
+    <div class="bg-white shadow-soft rounded-3xl overflow-hidden">
+      <button
+        type="button"
+        class="flex justify-between items-center hover:bg-slate-50 px-6 md:px-8 py-5 w-full text-left transition"
+        @click="isSummaryOpen = !isSummaryOpen"
+      >
+        <span class="font-bold text-slate-900 text-xl">
+          Test Summary Breakdown
+        </span>
+
+        <span
+          class="text-slate-500 text-2xl leading-none transition-transform duration-200"
+          :class="{ 'rotate-180': isSummaryOpen }"
         >
-          <p
-            class="font-semibold text-emerald-600 text-sm uppercase tracking-wide"
+          ˅
+        </span>
+      </button>
+
+      <div v-show="isSummaryOpen" class="px-6 md:px-8 pb-6 md:pb-8">
+        <div class="gap-4 grid md:grid-cols-2 mt-2">
+          <div
+            v-for="(stats, category) in results.categoryStats"
+            :key="category"
+            class="p-4 border border-slate-200 rounded-2xl"
           >
-            {{ formatCategory(category) }}
-          </p>
+            <p
+              class="font-semibold text-emerald-600 text-sm uppercase tracking-wide"
+            >
+              {{ formatCategory(category) }}
+            </p>
 
-          <div class="gap-3 grid grid-cols-3 mt-3 text-sm">
-            <div>
-              <p class="text-slate-500">Total</p>
-              <p class="font-bold text-slate-900">{{ stats.total }}</p>
-            </div>
+            <div class="gap-3 grid grid-cols-3 mt-3 text-sm">
+              <div>
+                <p class="text-slate-500">Total</p>
+                <p class="font-bold text-slate-900">{{ stats.total }}</p>
+              </div>
 
-            <div>
-              <p class="text-slate-500">Correct</p>
-              <p class="font-bold text-slate-900">{{ stats.correct }}</p>
-            </div>
+              <div>
+                <p class="text-slate-500">Correct</p>
+                <p class="font-bold text-slate-900">{{ stats.correct }}</p>
+              </div>
 
-            <div>
-              <p class="text-slate-500">Unanswered</p>
-              <p class="font-bold text-slate-900">{{ stats.unanswered }}</p>
+              <div>
+                <p class="text-slate-500">Unanswered</p>
+                <p class="font-bold text-slate-900">{{ stats.unanswered }}</p>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div> -->
+    </div>
 
     <div class="bg-white shadow-soft p-6 md:p-8 rounded-3xl">
       <h3 class="font-bold text-slate-900 text-xl">Answer Review</h3>
@@ -176,44 +238,3 @@
     </div>
   </section>
 </template>
-
-<script setup>
-const props = defineProps({
-  results: {
-    type: Object,
-    required: true,
-  },
-  passPercent: {
-    type: Number,
-    required: true,
-  },
-})
-
-defineEmits(["go-home", "retake-exam"])
-
-function formatCategory(category) {
-  return category
-    .replace(/([A-Z])/g, " $1")
-    .replace(/^./, (char) => char.toUpperCase())
-}
-
-function isCorrect(question) {
-  return props.results.answers[question.id] === question.correctAnswer
-}
-
-function isUnanswered(question) {
-  return typeof props.results.answers[question.id] === "undefined"
-}
-
-function badgeLabel(question) {
-  if (isUnanswered(question)) return "Unanswered"
-  if (isCorrect(question)) return "Correct"
-  return "Incorrect"
-}
-
-function badgeClass(question) {
-  if (isUnanswered(question)) return "bg-amber-100 text-amber-800"
-  if (isCorrect(question)) return "bg-emerald-100 text-emerald-800"
-  return "bg-red-100 text-red-800"
-}
-</script>

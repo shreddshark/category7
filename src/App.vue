@@ -20,8 +20,7 @@
           TN Category 7 Sample Test
         </h1>
         <p class="mx-auto mt-4 max-w-2xl text-slate-600 text-base leading-7">
-          Read and accept the disclaimer to begin your 100-question timed sample
-          exam.
+          Read and accept the disclaimer to begin your timed sample exam.
         </p>
         <button
           type="button"
@@ -55,12 +54,36 @@
             <p class="font-semibold text-slate-700 text-sm">
               Questions Per Exam
             </p>
-            <p class="mt-2 font-bold text-slate-900 text-2xl">100</p>
+
+            <select
+              v-model="selectedQuestionCount"
+              class="bg-white mt-2 px-3 py-2 border border-slate-300 focus:border-emerald-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-200 w-full font-bold text-slate-900 text-lg transition"
+            >
+              <option
+                v-for="option in questionCountOptions"
+                :key="option"
+                :value="option"
+              >
+                {{ option }}
+              </option>
+            </select>
           </div>
 
           <div class="bg-slate-100 p-4 rounded-2xl">
             <p class="font-semibold text-slate-700 text-sm">Time Limit</p>
-            <p class="mt-2 font-bold text-slate-900 text-2xl">2 Hours</p>
+
+            <select
+              v-model="selectedTimeLimit"
+              class="bg-white mt-2 px-3 py-2 border border-slate-300 focus:border-emerald-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-200 w-full font-bold text-slate-900 text-lg transition"
+            >
+              <option
+                v-for="option in timeLimitOptions"
+                :key="option.value"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </select>
           </div>
         </div>
 
@@ -74,14 +97,19 @@
         <button
           type="button"
           class="bg-emerald-600 hover:bg-emerald-700 mt-6 px-6 py-3 rounded-2xl font-semibold text-white transition"
-          @click="initializeExam"
+          @click="startSelectedExam"
         >
           Start Sample Test
         </button>
       </section>
 
       <section v-else-if="completed">
-        <ResultsSummary :results="results" :pass-percent="passPercent" />
+        <ResultsSummary
+          :results="results"
+          :pass-percent="passPercent"
+          @go-home="goHome"
+          @retake-exam="retakeExam"
+        />
       </section>
 
       <section v-else class="space-y-6">
@@ -150,6 +178,7 @@
 
 <script setup>
 import { ref } from "vue"
+import { useRouter } from "vue-router"
 import DisclaimerModal from "./components/DisclaimerModal.vue"
 import ExamHeader from "./components/ExamHeader.vue"
 import QuestionCard from "./components/QuestionCard.vue"
@@ -157,10 +186,23 @@ import ResultsSummary from "./components/ResultsSummary.vue"
 import SidebarNavigator from "./components/SidebarNavigator.vue"
 import { useExamEngine } from "./composables/useExamEngine"
 
+const router = useRouter()
+
 const showDisclaimer = ref(true)
 const agreed = ref(false)
 const showMobileNav = ref(false)
 const mobileNavOpen = ref(true)
+
+const questionCountOptions = [10, 25, 50, 100]
+const timeLimitOptions = [
+  { label: "15 Minutes", value: 15 },
+  { label: "30 Minutes", value: 30 },
+  { label: "1 hour", value: 60 },
+  { label: "2 hours", value: 120 },
+]
+
+const selectedQuestionCount = ref(100)
+const selectedTimeLimit = ref(120)
 
 const {
   questions,
@@ -179,7 +221,36 @@ const {
   prevQuestion,
   submitExam,
   passPercent,
+  resetExam,
 } = useExamEngine()
+
+function startSelectedExam() {
+  initializeExam({
+    questionCount: selectedQuestionCount.value,
+    timeLimitMinutes: selectedTimeLimit.value,
+  })
+}
+
+function goHome() {
+  if (typeof resetExam === "function") {
+    resetExam()
+  }
+
+  agreed.value = false
+  showDisclaimer.value = true
+  mobileNavOpen.value = true
+}
+
+function retakeExam() {
+  if (typeof resetExam === "function") {
+    resetExam()
+  }
+
+  initializeExam({
+    questionCount: selectedQuestionCount.value,
+    timeLimitMinutes: selectedTimeLimit.value,
+  })
+}
 
 function handleAgree() {
   agreed.value = true
