@@ -36,7 +36,7 @@
         <button
           type="button"
           class="hover:bg-slate-100 px-5 py-3 border border-slate-300 rounded-2xl font-semibold text-slate-700 transition"
-          @click="$emit('decline')"
+          @click="handleDecline"
         >
           Leave Site
         </button>
@@ -44,7 +44,7 @@
         <button
           type="button"
           class="bg-emerald-600 hover:bg-emerald-700 px-5 py-3 rounded-2xl font-semibold text-white transition"
-          @click="$emit('agree')"
+          @click="handleAgree"
         >
           I Agree
         </button>
@@ -64,9 +64,19 @@ const props = defineProps({
   },
 })
 
-defineEmits(["agree", "decline"])
+const emit = defineEmits(["update:modelValue", "agree", "decline"])
 
 const modalCard = ref(null)
+
+function handleAgree() {
+  emit("update:modelValue", false)
+  emit("agree")
+}
+
+function handleDecline() {
+  emit("update:modelValue", false)
+  emit("decline")
+}
 
 function animateIn() {
   if (!modalCard.value) return
