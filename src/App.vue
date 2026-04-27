@@ -166,6 +166,21 @@ onMounted(() => {
   })
 })
 
+function formatDuration(seconds) {
+  if (seconds === null || typeof seconds === "undefined") return "—"
+
+  const totalSeconds = Math.max(0, Number(seconds))
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const remainingSeconds = totalSeconds % 60
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m ${remainingSeconds}s`
+  }
+
+  return `${minutes}m ${remainingSeconds}s`
+}
+
 const leaderboardQuestionCount = ref(100)
 const leaderboardTimeLimit = ref(120)
 
@@ -203,6 +218,7 @@ const {
   results,
   answeredCount,
   formattedTime,
+  timeRemaining,
   initializeExam,
   answerQuestion,
   goToQuestion,
@@ -235,7 +251,7 @@ async function handleSubmitExam() {
 
   recentlySubmittedUid.value = user.value.uid
   leaderboardQuestionCount.value = selectedQuestionCount.value
-  leaderboardTimeLimit.value = selectedTimeLimit.valuealue
+leaderboardTimeLimit.value = selectedTimeLimit.value
   leaderboardTimeLimit.value = selectedTimeLimit.value
 }
 
@@ -749,6 +765,7 @@ function handleDecline() {
             The exam will automatically submit when the timer reaches zero. Any
             unanswered questions will count against the final score.
           </div>
+
           <div
             v-if="!user"
             class="bg-slate-50 mt-6 p-4 border border-slate-200 rounded-2xl text-slate-700 text-sm leading-6"
@@ -757,25 +774,24 @@ function handleDecline() {
             lets us save your scores, protect leaderboard integrity, and support
             password reset.
           </div>
-          <div class="flex sm:flex-row flex-col gap-3 mt-6">
-            <div class="flex sm:flex-row flex-col gap-3 mt-6">
-              <button
-                type="button"
-                class="flex-1 bg-emerald-600 hover:bg-emerald-700 px-6 py-3 rounded-2xl font-semibold text-white text-center transition"
-                @click="startSelectedExam"
-              >
-                Start Sample Test
-              </button>
 
-              <button
-                v-if="!user"
-                type="button"
-                class="flex-1 hover:bg-slate-100 px-6 py-3 border border-slate-300 rounded-2xl font-semibold text-slate-700 text-center transition"
-                @click="openAuthModal('login')"
-              >
-                Sign In to Save Scores
-              </button>
-            </div>
+          <div class="flex sm:flex-row flex-col gap-3 mt-6">
+            <button
+              type="button"
+              class="flex-1 bg-emerald-600 hover:bg-emerald-700 px-6 py-3 rounded-2xl font-semibold text-white text-center transition"
+              @click="startSelectedExam"
+            >
+              Start Sample Test
+            </button>
+
+            <button
+              v-if="!user"
+              type="button"
+              class="flex-1 hover:bg-slate-100 px-6 py-3 border border-slate-300 rounded-2xl font-semibold text-slate-700 text-center transition"
+              @click="openAuthModal('login')"
+            >
+              Sign In to Save Scores
+            </button>
           </div>
         </div>
 
@@ -870,52 +886,53 @@ function handleDecline() {
             </div>
 
             <div class="space-y-3 mt-5">
-              <div class="space-y-3 mt-5">
-                <div class="space-y-3 mt-5">
-                  <div
-                    v-if="filteredLeaderboard.length"
-                    v-for="entry in filteredLeaderboard"
-                    :key="entry.id"
-                    class="flex justify-between items-center px-4 py-3 border rounded-2xl transition-all duration-500"
-                    :class="
-                      entry.uid === recentlySubmittedUid
-                        ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-100'
-                        : 'bg-slate-50 border-slate-200'
-                    "
-                  >
-                    <div class="min-w-0">
-                      <p class="font-semibold text-slate-900 truncate">
-                        #{{ entry.rank }} {{ entry.name }}
-                      </p>
-                      <p class="text-slate-500 text-sm">
-                        {{ entry.questionCount }} questions •
-                        {{ entry.timeLimitLabel }}
-                      </p>
-                    </div>
-
-                    <div class="text-right">
-                      <p class="font-bold text-slate-900 text-lg">
-                        {{ entry.score }}%
-                      </p>
-                      <p class="text-slate-500 text-xs">
-                        {{ entry.date || "Today" }}
-                      </p>
-                    </div>
+              <template v-if="filteredLeaderboard.length">
+                <div
+                  v-for="entry in filteredLeaderboard"
+                  :key="entry.id"
+                  class="flex justify-between items-center px-4 py-3 border rounded-2xl transition-all duration-500"
+                  :class="
+                    entry.uid === recentlySubmittedUid
+                      ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-100'
+                      : 'bg-slate-50 border-slate-200'
+                  "
+                >
+                  <div class="min-w-0">
+                    <p class="font-semibold text-slate-900 truncate">
+                      #{{ entry.rank }} {{ entry.name }}
+                    </p>
+                    <p class="text-slate-500 text-sm">
+                      {{ entry.questionCount }} questions •
+                      {{ entry.timeLimitLabel }}
+                    </p>
+                    <p class="mt-1 font-medium text-emerald-700 text-xs">
+                      Finished in
+                      {{ formatDuration(entry.durationUsedSeconds) }}
+                    </p>
                   </div>
 
-                  <div
-                    v-else
-                    class="bg-slate-50 px-4 py-5 border border-slate-300 border-dashed rounded-2xl text-center"
-                  >
-                    <p class="font-semibold text-slate-800 text-sm">
-                      No scores yet
+                  <div class="text-right">
+                    <p class="font-bold text-slate-900 text-lg">
+                      {{ entry.score }}%
                     </p>
-                    <p class="mt-1 text-slate-500 text-xs">
-                      Submit an exam for this question count and time limit to
-                      appear here.
+                    <p class="text-slate-500 text-xs">
+                      {{ entry.date || "Today" }}
                     </p>
                   </div>
                 </div>
+              </template>
+
+              <div
+                v-else
+                class="bg-slate-50 px-4 py-5 border border-slate-300 border-dashed rounded-2xl text-center"
+              >
+                <p class="font-semibold text-slate-800 text-sm">
+                  No scores yet
+                </p>
+                <p class="mt-1 text-slate-500 text-xs">
+                  Submit an exam for this question count and time limit to
+                  appear here.
+                </p>
               </div>
             </div>
           </div>
