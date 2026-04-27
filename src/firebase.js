@@ -1,19 +1,17 @@
+// src/firebase.js
 import { initializeApp } from "firebase/app"
-import { getFirestore } from "firebase/firestore"
 import { getAuth } from "firebase/auth"
+import { getFirestore } from "firebase/firestore"
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBOX924Jg2_4yWmLJ3nQYaGMLl6JFFHMVg",
-  authDomain: "category7-52f07.firebaseapp.com",
-  projectId: "category7-52f07",
-  storageBucket: "category7-52f07.firebasestorage.app",
-  messagingSenderId: "421569012781",
-  appId: "1:421569012781:web:a52cf6049f48684ca204a4",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 }
-
 const app = initializeApp(firebaseConfig)
 
-const db = getFirestore(app)
-const auth = getAuth(app)
-
-export { app, db, auth }
+export const auth = getAuth(app)
+export const db = getFirestore(app)

@@ -259,6 +259,18 @@ export function useExamEngine() {
     stopTimer()
   })
 
+  function resetExam() {
+    stopTimer()
+
+    questions.value = []
+    answers.value = {}
+    currentIndex.value = 0
+    started.value = false
+    completed.value = false
+    results.value = null
+    timeRemaining.value = EXAM_DURATION_SECONDS
+  }
+
   return {
     fullPool,
     questions,
@@ -277,6 +289,7 @@ export function useExamEngine() {
     nextQuestion,
     prevQuestion,
     submitExam,
+    resetExam,
     passPercent: PASSING_PERCENT,
   }
 }

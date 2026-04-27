@@ -13,7 +13,6 @@ const props = defineProps({
 })
 
 defineEmits(["go-home", "retake-exam"])
-
 const isSummaryOpen = ref(false)
 
 function formatCategory(category) {

@@ -1,11 +1,33 @@
 <script setup>
-import { computed, reactive, ref } from "vue"
+import { computed, onMounted, reactive, ref } from "vue"
 import DisclaimerModal from "./components/DisclaimerModal.vue"
 import ExamHeader from "./components/ExamHeader.vue"
 import QuestionCard from "./components/QuestionCard.vue"
 import ResultsSummary from "./components/ResultsSummary.vue"
 import SidebarNavigator from "./components/SidebarNavigator.vue"
 import { useExamEngine } from "./composables/useExamEngine"
+
+//firebase imports
+import { auth, db } from "@/firebase"
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+  signOut,
+  updateProfile,
+  onAuthStateChanged,
+} from "firebase/auth"
+import {
+  collection,
+  getDocs,
+  onSnapshot,
+  orderBy,
+  query,
+  where,
+} from "firebase/firestore"
+import { saveLeaderboardEntry } from "@/services/leaderboardService"
+const leaderboardSectionRef = ref(null)
+const recentlySubmittedUid = ref(null)
 
 const showDisclaimer = ref(false)
 const agreed = ref(false)
@@ -34,59 +56,141 @@ const authForm = reactive({
 })
 
 const user = ref(null)
+const authError = ref("")
+const authLoading = ref(false)
+
+async function loadUserStats(firebaseUser) {
+  const userScoresQuery = query(
+    collection(db, "leaderboard"),
+    where("uid", "==", firebaseUser.uid),
+  )
+
+  const allScoresQuery = query(collection(db, "leaderboard"))
+
+  const [userSnapshot, allSnapshot] = await Promise.all([
+    getDocs(userScoresQuery),
+    getDocs(allScoresQuery),
+  ])
+
+  const userEntries = userSnapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  }))
+
+  if (!userEntries.length) {
+    return {
+      bestScore: 0,
+      attempts: 0,
+      rank: "-",
+    }
+  }
+
+  const allEntries = allSnapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  }))
+
+  const sortedEntries = allEntries
+    .map((entry) => ({
+      ...entry,
+      score: Number(entry.score ?? entry.percent ?? 0),
+      durationUsedSeconds: entry.durationUsedSeconds ?? Number.MAX_SAFE_INTEGER,
+    }))
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score
+      return a.durationUsedSeconds - b.durationUsedSeconds
+    })
+
+  const userBestEntry = userEntries
+    .map((entry) => ({
+      ...entry,
+      score: Number(entry.score ?? entry.percent ?? 0),
+      durationUsedSeconds: entry.durationUsedSeconds ?? Number.MAX_SAFE_INTEGER,
+    }))
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score
+      return a.durationUsedSeconds - b.durationUsedSeconds
+    })[0]
+
+  const bestScore = userBestEntry.score
+  const attempts = userEntries.reduce(
+    (total, entry) => total + Number(entry.attempts || 1),
+    0,
+  )
+
+  const rankIndex = sortedEntries.findIndex(
+    (entry) =>
+      entry.uid === firebaseUser.uid &&
+      entry.score === userBestEntry.score &&
+      entry.questionCount === userBestEntry.questionCount &&
+      entry.timeLimit === userBestEntry.timeLimit,
+  )
+
+  return {
+    bestScore,
+    attempts,
+    rank: rankIndex >= 0 ? rankIndex + 1 : "-",
+  }
+}
+
+onMounted(() => {
+  onAuthStateChanged(auth, async (firebaseUser) => {
+    if (!firebaseUser) {
+      user.value = null
+      return
+    }
+
+    const stats = await loadUserStats(firebaseUser)
+
+    user.value = {
+      uid: firebaseUser.uid,
+      displayName: firebaseUser.displayName || "User",
+      email: firebaseUser.email,
+      bestScore: stats.bestScore,
+      attempts: stats.attempts,
+      rank: stats.rank,
+    }
+  })
+
+  const leaderboardQuery = query(
+    collection(db, "leaderboard"),
+    orderBy("score", "desc"),
+  )
+
+  onSnapshot(leaderboardQuery, (snapshot) => {
+    leaderboardEntries.value = snapshot.docs.map((doc, index) => ({
+      id: doc.id,
+      rank: index + 1,
+      ...doc.data(),
+    }))
+  })
+})
 
 const leaderboardQuestionCount = ref(100)
 const leaderboardTimeLimit = ref(120)
 
-const leaderboardEntries = ref([
-  {
-    id: 1,
-    rank: 5,
-    name: "Mia R.",
-    score: 91,
-    questionCount: 100,
-    timeLimit: 120,
-    timeLimitLabel: "2 Hours",
-    date: "Apr 18",
-  },
-  {
-    id: 2,
-    rank: 2,
-    name: "Chris T.",
-    score: 97,
-    questionCount: 100,
-    timeLimit: 120,
-    timeLimitLabel: "2 Hours",
-    date: "Apr 18",
-  },
-  {
-    id: 3,
-    rank: 3,
-    name: "Jordan P.",
-    score: 95,
-    questionCount: 100,
-    timeLimit: 120,
-    timeLimitLabel: "2 Hours",
-    date: "Apr 17",
-  },
-  {
-    id: 4,
-    rank: 1,
-    name: "Daniel",
-    score: 100,
-    questionCount: 10,
-    timeLimit: 15,
-    timeLimitLabel: "15 Minutes",
-    date: "Apr 18",
-  },
-])
+const leaderboardEntries = ref([])
 
 const filteredLeaderboard = computed(() =>
-  leaderboardEntries.value.filter(
-    (entry) =>
-      entry.questionCount === leaderboardQuestionCount.value &&
-      entry.timeLimit === leaderboardTimeLimit.value,
-  ),
+  leaderboardEntries.value
+    .filter(
+      (entry) =>
+        entry.questionCount === leaderboardQuestionCount.value &&
+        entry.timeLimit === leaderboardTimeLimit.value,
+    )
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score
+
+      const aDuration = a.durationUsedSeconds ?? Number.MAX_SAFE_INTEGER
+      const bDuration = b.durationUsedSeconds ?? Number.MAX_SAFE_INTEGER
+
+      return aDuration - bDuration
+    })
+    .slice(0, 5)
+    .map((entry, index) => ({
+      ...entry,
+      rank: index + 1,
+    })),
 )
 
 const {
@@ -109,6 +213,32 @@ const {
   resetExam,
 } = useExamEngine()
 
+async function handleSubmitExam() {
+  submitExam(false)
+
+  const selectedTimeLimitOption = timeLimitOptions.find(
+    (option) => option.value === selectedTimeLimit.value,
+  )
+
+  if (!user.value) return
+
+  await saveLeaderboardEntry({
+    uid: user.value.uid,
+    name: user.value.displayName || "Anonymous",
+    score: results.value?.percent ?? results.percent,
+    questionCount: selectedQuestionCount.value,
+    timeLimit: selectedTimeLimit.value,
+    timeLimitLabel:
+      selectedTimeLimitOption?.label || `${selectedTimeLimit.value} Minutes`,
+    durationUsedSeconds: results.value?.durationUsedSeconds ?? null,
+  })
+
+  recentlySubmittedUid.value = user.value.uid
+  leaderboardQuestionCount.value = selectedQuestionCount.value
+  leaderboardTimeLimit.value = selectedTimeLimit.valuealue
+  leaderboardTimeLimit.value = selectedTimeLimit.value
+}
+
 function openAuthModal(mode) {
   authMode.value = mode
   showAuthModal.value = true
@@ -118,19 +248,79 @@ function closeAuthModal() {
   showAuthModal.value = false
 }
 
-function handleLogin() {
-  showAuthModal.value = false
+async function handleLogin() {
+  authError.value = ""
+  authLoading.value = true
+
+  try {
+    await signInWithEmailAndPassword(
+      auth,
+      authForm.email.trim(),
+      authForm.password,
+    )
+
+    showAuthModal.value = false
+  } catch (error) {
+    authError.value = error.message
+  } finally {
+    authLoading.value = false
+  }
 }
 
-function handleRegister() {
-  showAuthModal.value = false
+async function handleRegister() {
+  authError.value = ""
+
+  if (authForm.password !== authForm.confirmPassword) {
+    authError.value = "Passwords do not match."
+    return
+  }
+
+  authLoading.value = true
+
+  try {
+    const userCredential = await createUserWithEmailAndPassword(
+      auth,
+      authForm.email.trim(),
+      authForm.password,
+    )
+
+    await updateProfile(userCredential.user, {
+      displayName: authForm.displayName.trim(),
+    })
+
+    user.value = {
+      uid: userCredential.user.uid,
+      displayName: authForm.displayName.trim(),
+      email: userCredential.user.email,
+      bestScore: 0,
+      rank: "-",
+      attempts: 0,
+    }
+
+    showAuthModal.value = false
+  } catch (error) {
+    authError.value = error.message
+  } finally {
+    authLoading.value = false
+  }
 }
 
-function handlePasswordReset() {
-  showAuthModal.value = false
+async function handlePasswordReset() {
+  authError.value = ""
+  authLoading.value = true
+
+  try {
+    await sendPasswordResetEmail(auth, authForm.email.trim())
+    authError.value = "Password reset email sent."
+  } catch (error) {
+    authError.value = error.message
+  } finally {
+    authLoading.value = false
+  }
 }
 
-function logout() {
+async function logout() {
+  await signOut(auth)
   user.value = null
 }
 
@@ -147,13 +337,28 @@ function startSelectedExam() {
 }
 
 function goHome() {
-  if (typeof resetExam === "function") {
-    resetExam()
-  }
+  console.log("GO HOME CLICKED") // debug
 
-  agreed.value = false
-  showDisclaimer.value = true
+  // Reset exam state (now defined)
+  resetExam()
+
+  // Go back to homepage (NOT disclaimer)
+  agreed.value = true
+  showDisclaimer.value = false
   mobileNavOpen.value = true
+
+  // Smooth scroll to leaderboard
+  setTimeout(() => {
+    leaderboardSectionRef.value?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    })
+  }, 100)
+
+  // Remove highlight after a few seconds
+  setTimeout(() => {
+    recentlySubmittedUid.value = null
+  }, 4000)
 }
 
 function retakeExam() {
@@ -172,9 +377,20 @@ function retakeExam() {
   })
 }
 
+onMounted(() => {
+  const hasSeenDisclaimer = localStorage.getItem("seenDisclaimer")
+
+  if (!hasSeenDisclaimer) {
+    showDisclaimer.value = true
+  } else {
+    agreed.value = true
+  }
+})
+
 function handleAgree() {
   agreed.value = true
   showDisclaimer.value = false
+  localStorage.setItem("seenDisclaimer", "true")
 }
 
 function handleDecline() {
@@ -222,6 +438,13 @@ function handleDecline() {
           </button>
         </div>
 
+        <p
+          v-if="authError"
+          class="bg-red-50 mb-4 px-4 py-3 border border-red-200 rounded-2xl font-semibold text-red-700 text-sm"
+        >
+          {{ authError }}
+        </p>
+
         <form
           v-if="authMode === 'login'"
           class="space-y-4"
@@ -261,9 +484,10 @@ function handleDecline() {
 
           <button
             type="submit"
-            class="bg-emerald-600 hover:bg-emerald-700 px-5 py-3 rounded-2xl w-full font-semibold text-white transition"
+            :disabled="authLoading"
+            class="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 px-5 py-3 rounded-2xl w-full font-semibold text-white transition"
           >
-            Sign In
+            {{ authLoading ? "Please wait..." : "Sign In" }}
           </button>
 
           <p class="text-slate-600 text-sm text-center">
@@ -600,7 +824,10 @@ function handleDecline() {
             </template>
           </div>
 
-          <div class="bg-white shadow-soft p-6 rounded-3xl">
+          <div
+            ref="leaderboardSectionRef"
+            class="bg-white shadow-soft p-6 rounded-3xl scroll-mt-6"
+          >
             <div class="flex justify-between items-center gap-3">
               <div>
                 <p
@@ -643,27 +870,51 @@ function handleDecline() {
             </div>
 
             <div class="space-y-3 mt-5">
-              <div
-                v-for="entry in filteredLeaderboard"
-                :key="entry.id"
-                class="flex justify-between items-center bg-slate-50 px-4 py-3 rounded-2xl"
-              >
-                <div class="min-w-0">
-                  <p class="font-semibold text-slate-900 truncate">
-                    #{{ entry.rank }} {{ entry.name }}
-                  </p>
-                  <p class="text-slate-500 text-sm">
-                    {{ entry.questionCount }} questions •
-                    {{ entry.timeLimitLabel }}
-                  </p>
-                </div>
-                <div class="text-right">
-                  <p class="font-bold text-slate-900 text-lg">
-                    {{ entry.score }}%
-                  </p>
-                  <p class="text-slate-500 text-xs">
-                    {{ entry.date }}
-                  </p>
+              <div class="space-y-3 mt-5">
+                <div class="space-y-3 mt-5">
+                  <div
+                    v-if="filteredLeaderboard.length"
+                    v-for="entry in filteredLeaderboard"
+                    :key="entry.id"
+                    class="flex justify-between items-center px-4 py-3 border rounded-2xl transition-all duration-500"
+                    :class="
+                      entry.uid === recentlySubmittedUid
+                        ? 'bg-emerald-50 border-emerald-300 ring-2 ring-emerald-100'
+                        : 'bg-slate-50 border-slate-200'
+                    "
+                  >
+                    <div class="min-w-0">
+                      <p class="font-semibold text-slate-900 truncate">
+                        #{{ entry.rank }} {{ entry.name }}
+                      </p>
+                      <p class="text-slate-500 text-sm">
+                        {{ entry.questionCount }} questions •
+                        {{ entry.timeLimitLabel }}
+                      </p>
+                    </div>
+
+                    <div class="text-right">
+                      <p class="font-bold text-slate-900 text-lg">
+                        {{ entry.score }}%
+                      </p>
+                      <p class="text-slate-500 text-xs">
+                        {{ entry.date || "Today" }}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div
+                    v-else
+                    class="bg-slate-50 px-4 py-5 border border-slate-300 border-dashed rounded-2xl text-center"
+                  >
+                    <p class="font-semibold text-slate-800 text-sm">
+                      No scores yet
+                    </p>
+                    <p class="mt-1 text-slate-500 text-xs">
+                      Submit an exam for this question count and time limit to
+                      appear here.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -731,7 +982,7 @@ function handleDecline() {
                 <button
                   type="button"
                   class="bg-slate-900 hover:bg-slate-800 px-5 py-3 rounded-2xl font-semibold text-white transition"
-                  @click="submitExam(false)"
+                  @click="handleSubmitExam"
                 >
                   Submit Exam
                 </button>
