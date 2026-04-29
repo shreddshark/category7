@@ -37,7 +37,7 @@ function badgeLabel(question) {
 
 function badgeClass(question) {
   if (isUnanswered(question)) return "bg-amber-100 text-amber-800"
-  if (isCorrect(question)) return "bg-emerald-100 text-emerald-800"
+  if (isCorrect(question)) return "bg-blue-100 text-blue-800"
   return "bg-red-100 text-red-800"
 }
 </script>
@@ -45,9 +45,7 @@ function badgeClass(question) {
 <template>
   <section class="space-y-6">
     <div class="bg-white shadow-soft p-6 md:p-8 rounded-3xl">
-      <p
-        class="font-semibold text-emerald-600 text-sm uppercase tracking-[0.2em]"
-      >
+      <p class="font-semibold text-blue-600 text-sm uppercase tracking-[0.2em]">
         Final Result
       </p>
 
@@ -118,7 +116,7 @@ function badgeClass(question) {
 
         <button
           type="button"
-          class="bg-emerald-600 hover:bg-emerald-700 px-5 py-3 rounded-2xl font-semibold text-white transition"
+          class="bg-blue-600 hover:bg-blue-700 px-5 py-3 rounded-2xl font-semibold text-white transition"
           @click="$emit('retake-exam')"
         >
           Retake Exam
@@ -152,7 +150,7 @@ function badgeClass(question) {
             class="p-4 border border-slate-200 rounded-2xl"
           >
             <p
-              class="font-semibold text-emerald-600 text-sm uppercase tracking-wide"
+              class="font-semibold text-blue-600 text-sm uppercase tracking-wide"
             >
               {{ formatCategory(category) }}
             </p>
@@ -192,7 +190,7 @@ function badgeClass(question) {
           >
             <div>
               <p
-                class="font-semibold text-emerald-600 text-sm uppercase tracking-wide"
+                class="font-semibold text-blue-600 text-sm uppercase tracking-wide"
               >
                 {{ index + 1 }}. {{ formatCategory(question.category) }}
               </p>
@@ -219,11 +217,11 @@ function badgeClass(question) {
               </p>
             </div>
 
-            <div class="bg-emerald-50 p-3 rounded-xl">
-              <p class="text-emerald-700 text-xs uppercase tracking-wide">
+            <div class="bg-blue-50 p-3 rounded-xl">
+              <p class="text-blue-700 text-xs uppercase tracking-wide">
                 Correct Answer
               </p>
-              <p class="mt-1 font-semibold text-emerald-900">
+              <p class="mt-1 font-semibold text-blue-900">
                 {{ question.correctAnswer }}
               </p>
             </div>

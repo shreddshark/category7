@@ -5,7 +5,7 @@
     >
       <div class="min-w-0">
         <p
-          class="font-semibold text-emerald-600 text-sm uppercase tracking-[0.2em]"
+          class="font-semibold text-blue-600 text-sm uppercase tracking-[0.2em]"
         >
           {{ prettyCategory }}
         </p>
@@ -41,7 +41,7 @@
         class="px-4 py-4 border rounded-2xl w-full font-medium text-sm md:text-base text-left transition"
         :class="
           selectedAnswer === choice
-            ? 'border-emerald-600 bg-emerald-50 text-emerald-800'
+            ? 'border-blue-600 bg-blue-50 text-blue-800'
             : 'border-slate-200 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50'
         "
         @click="$emit('select', choice)"
@@ -51,7 +51,7 @@
             class="inline-flex justify-center items-center mt-0.5 border rounded-full w-7 h-7 font-bold text-xs shrink-0"
             :class="
               selectedAnswer === choice
-                ? 'border-emerald-600 bg-emerald-600 text-white'
+                ? 'border-blue-600 bg-blue-600 text-white'
                 : 'border-slate-300 bg-slate-100 text-slate-700'
             "
           >

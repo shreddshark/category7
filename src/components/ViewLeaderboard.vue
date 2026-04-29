@@ -112,7 +112,7 @@ function rankLabel(rank) {
         >
           <div>
             <p
-              class="font-semibold text-emerald-600 text-sm uppercase tracking-[0.2em]"
+              class="font-semibold text-blue-600 text-sm uppercase tracking-[0.2em]"
             >
               Leaderboard
             </p>

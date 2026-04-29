@@ -9,7 +9,7 @@
     >
       <div class="mb-5">
         <p
-          class="mb-2 font-semibold text-emerald-600 text-sm uppercase tracking-[0.2em]"
+          class="mb-2 font-semibold text-blue-600 text-sm uppercase tracking-[0.2em]"
         >
           Exam Disclaimer
         </p>
@@ -43,7 +43,7 @@
 
         <button
           type="button"
-          class="bg-emerald-600 hover:bg-emerald-700 px-5 py-3 rounded-2xl font-semibold text-white transition"
+          class="bg-blue-600 hover:bg-blue-700 px-5 py-3 rounded-2xl font-semibold text-white transition"
           @click="handleAgree"
         >
           I Agree

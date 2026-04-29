@@ -67,11 +67,11 @@ function buttonClass(questionId, index) {
   const isAnswered = typeof props.answers[questionId] !== "undefined"
 
   if (isCurrent) {
-    return "border-emerald-600 bg-emerald-600 text-white"
+    return "border-blue-600 bg-blue-600 text-white"
   }
 
   if (isAnswered) {
-    return "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+    return "border-blue-200 bg-blue-50 text-blue-800 hover:bg-blue-100"
   }
 
   return "border-slate-200 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50"
