@@ -35,15 +35,12 @@ const filteredEntries = computed(() => {
 
   return items
     .sort((a, b) => {
-      // Primary: score
       if (b.score !== a.score) return b.score - a.score
 
-      // Secondary: fastest time
       const aDuration = a.durationUsedSeconds ?? Number.MAX_SAFE_INTEGER
       const bDuration = b.durationUsedSeconds ?? Number.MAX_SAFE_INTEGER
       if (aDuration !== bDuration) return aDuration - bDuration
 
-      // Tertiary: newest date
       const aDate = a.createdAt?.seconds
         ? new Date(a.createdAt.seconds * 1000)
         : new Date(a.date || 0)
@@ -75,10 +72,19 @@ function resetFilters() {
 }
 
 function rankClasses(rank) {
-  if (rank === 1) return "bg-yellow-100 text-yellow-800"
-  if (rank === 2) return "bg-slate-200 text-slate-700"
-  if (rank === 3) return "bg-orange-100 text-orange-800"
-  return "bg-slate-100 text-slate-700"
+  if (rank === 1) {
+    return "bg-yellow-100 dark:bg-yellow-950/40 text-yellow-800 dark:text-yellow-200"
+  }
+
+  if (rank === 2) {
+    return "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-100"
+  }
+
+  if (rank === 3) {
+    return "bg-orange-100 dark:bg-orange-950/40 text-orange-800 dark:text-orange-200"
+  }
+
+  return "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200"
 }
 
 function rankLabel(rank) {
@@ -93,7 +99,7 @@ function rankLabel(rank) {
   <div>
     <button
       type="button"
-      class="hover:bg-slate-100 px-5 py-3 border border-slate-300 rounded-2xl font-semibold text-slate-700 transition"
+      class="hover:bg-slate-100 dark:hover:bg-slate-800 px-5 py-3 border border-slate-300 dark:border-slate-700 rounded-2xl font-semibold text-slate-700 dark:text-slate-200 transition"
       @click="openLeaderboard"
     >
       View Leaderboard
@@ -101,42 +107,45 @@ function rankLabel(rank) {
 
     <div
       v-if="isOpen"
-      class="z-50 fixed inset-0 flex justify-center items-center bg-slate-950/50 p-4"
+      class="z-50 fixed inset-0 flex justify-center items-center bg-slate-950/70 p-4"
     >
       <div
-        class="bg-white shadow-2xl rounded-3xl w-full max-w-5xl max-h-[90vh] overflow-hidden"
+        class="bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-5xl max-h-[90vh] overflow-hidden transition-colors"
       >
-        <!-- HEADER -->
         <div
-          class="flex sm:flex-row flex-col justify-between sm:items-center gap-4 p-6 md:p-8 border-b"
+          class="flex sm:flex-row flex-col justify-between sm:items-center gap-4 p-6 md:p-8 border-slate-200 dark:border-slate-800 border-b"
         >
           <div>
             <p
-              class="font-semibold text-blue-600 text-sm uppercase tracking-[0.2em]"
+              class="font-semibold text-blue-600 dark:text-blue-400 text-sm uppercase tracking-[0.2em]"
             >
               Leaderboard
             </p>
-            <h2 class="mt-1 font-bold text-slate-900 text-2xl md:text-3xl">
+            <h2
+              class="mt-1 font-bold text-slate-900 dark:text-white text-2xl md:text-3xl"
+            >
               Top 25 Test Takers
             </h2>
-            <p class="mt-2 text-slate-600 text-sm">
+            <p class="mt-2 text-slate-600 dark:text-slate-300 text-sm">
               Ranked by highest score, then fastest completion time.
             </p>
           </div>
 
           <button
-            class="hover:bg-slate-100 p-3 rounded-2xl text-slate-500"
+            type="button"
+            class="hover:bg-slate-100 dark:hover:bg-slate-800 p-3 rounded-2xl text-slate-500 dark:text-slate-300 transition"
             @click="closeLeaderboard"
           >
             ✕
           </button>
         </div>
 
-        <!-- BODY -->
         <div class="p-6 md:p-8 overflow-y-auto">
-          <!-- FILTERS -->
           <div class="gap-3 grid sm:grid-cols-[1fr_1fr_auto] mb-6">
-            <select v-model="selectedQuestionCount" class="input">
+            <select
+              v-model="selectedQuestionCount"
+              class="bg-white dark:bg-slate-800 px-4 py-3 border border-slate-300 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 w-full font-semibold text-slate-900 dark:text-white transition"
+            >
               <option :value="null">All Question Counts</option>
               <option
                 v-for="option in questionCountOptions"
@@ -147,7 +156,10 @@ function rankLabel(rank) {
               </option>
             </select>
 
-            <select v-model="selectedTimeLimit" class="input">
+            <select
+              v-model="selectedTimeLimit"
+              class="bg-white dark:bg-slate-800 px-4 py-3 border border-slate-300 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 w-full font-semibold text-slate-900 dark:text-white transition"
+            >
               <option :value="null">All Time Limits</option>
               <option
                 v-for="option in timeLimitOptions"
@@ -158,27 +170,34 @@ function rankLabel(rank) {
               </option>
             </select>
 
-            <button class="btn-secondary" @click="resetFilters">Reset</button>
+            <button
+              type="button"
+              class="hover:bg-slate-100 dark:hover:bg-slate-800 px-5 py-3 border border-slate-300 dark:border-slate-700 rounded-2xl font-semibold text-slate-700 dark:text-slate-200 transition"
+              @click="resetFilters"
+            >
+              Reset
+            </button>
           </div>
 
-          <!-- LIST -->
           <div v-if="filteredEntries.length" class="space-y-3">
             <div
               v-for="entry in filteredEntries"
               :key="entry.id"
-              class="flex sm:flex-row flex-col justify-between items-center gap-4 bg-slate-50 p-4 border rounded-2xl"
+              class="flex sm:flex-row flex-col justify-between sm:items-center gap-4 bg-slate-50 dark:bg-slate-800 p-4 border border-slate-200 dark:border-slate-700 rounded-2xl transition-colors"
             >
               <div class="flex items-center gap-4">
                 <div
-                  class="flex justify-center items-center rounded-full w-12 h-12 font-bold"
+                  class="flex justify-center items-center rounded-full w-12 h-12 font-bold shrink-0"
                   :class="rankClasses(entry.displayRank)"
                 >
                   {{ rankLabel(entry.displayRank) }}
                 </div>
 
                 <div>
-                  <p class="font-semibold">{{ entry.name }}</p>
-                  <p class="text-slate-500 text-sm">
+                  <p class="font-semibold text-slate-900 dark:text-white">
+                    {{ entry.name }}
+                  </p>
+                  <p class="text-slate-500 dark:text-slate-400 text-sm">
                     {{ entry.questionCount }} questions •
                     {{ entry.timeLimitLabel }}
                   </p>
@@ -187,13 +206,15 @@ function rankLabel(rank) {
 
               <div class="gap-6 grid grid-cols-2 text-sm">
                 <div>
-                  <p class="text-slate-500">Score</p>
-                  <p class="font-bold text-lg">{{ entry.score }}%</p>
+                  <p class="text-slate-500 dark:text-slate-400">Score</p>
+                  <p class="font-bold text-slate-900 dark:text-white text-lg">
+                    {{ entry.score }}%
+                  </p>
                 </div>
 
                 <div>
-                  <p class="text-slate-500">Date</p>
-                  <p class="font-semibold">
+                  <p class="text-slate-500 dark:text-slate-400">Date</p>
+                  <p class="font-semibold text-slate-900 dark:text-white">
                     {{ entry.date || "—" }}
                   </p>
                 </div>
@@ -201,10 +222,11 @@ function rankLabel(rank) {
             </div>
           </div>
 
-          <!-- EMPTY -->
           <div v-else class="py-8 text-center">
-            <p class="font-semibold text-lg">No leaderboard entries found</p>
-            <p class="mt-2 text-slate-500 text-sm">
+            <p class="font-semibold text-slate-900 dark:text-white text-lg">
+              No leaderboard entries found
+            </p>
+            <p class="mt-2 text-slate-500 dark:text-slate-400 text-sm">
               Submit a test to appear here.
             </p>
           </div>

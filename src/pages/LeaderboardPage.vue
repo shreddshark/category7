@@ -75,11 +75,19 @@ function formatDuration(seconds) {
 }
 
 function getRankBadge(rank) {
-  if (rank === 1) return "bg-yellow-400 text-slate-950"
-  if (rank === 2) return "bg-slate-300 text-slate-950"
-  if (rank === 3) return "bg-orange-400 text-slate-950"
+  if (rank === 1) {
+    return "bg-yellow-400 dark:bg-yellow-400 text-slate-950"
+  }
 
-  return "bg-slate-800 text-slate-300"
+  if (rank === 2) {
+    return "bg-slate-300 dark:bg-slate-300 text-slate-950"
+  }
+
+  if (rank === 3) {
+    return "bg-orange-400 dark:bg-orange-400 text-slate-950"
+  }
+
+  return "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
 }
 
 function goBackHome() {
@@ -88,22 +96,24 @@ function goBackHome() {
 </script>
 
 <template>
-  <main class="bg-slate-950 min-h-screen text-white">
+  <main
+    class="bg-slate-100 dark:bg-slate-950 min-h-screen text-slate-900 dark:text-white transition-colors duration-300"
+  >
     <section class="mx-auto px-4 md:px-8 py-8 max-w-7xl">
       <button
         type="button"
-        class="mb-6 font-semibold text-slate-400 hover:text-white transition"
+        class="mb-6 font-semibold text-slate-600 hover:text-slate-900 dark:hover:text-white dark:text-slate-400 transition"
         @click="goBackHome"
       >
         ← Back to Exam Hub
       </button>
 
       <div
-        class="bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.18),transparent_35%),linear-gradient(180deg,#020617,#0f172a)] shadow-2xl border border-slate-800 rounded-3xl overflow-hidden"
+        class="bg-white dark:bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.18),transparent_35%),linear-gradient(180deg,#020617,#0f172a)] shadow-2xl border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden transition-colors"
       >
-        <div class="p-6 md:p-8 border-slate-800 border-b">
+        <div class="p-6 md:p-8 border-slate-200 dark:border-slate-800 border-b">
           <p
-            class="font-semibold text-blue-400 text-sm uppercase tracking-[0.3em]"
+            class="font-semibold text-blue-600 dark:text-blue-400 text-sm uppercase tracking-[0.3em]"
           >
             TN Category 7
           </p>
@@ -112,20 +122,24 @@ function goBackHome() {
             class="flex md:flex-row flex-col md:justify-between md:items-end gap-5 mt-3"
           >
             <div>
-              <h1 class="font-black text-4xl md:text-6xl tracking-tight">
+              <h1
+                class="font-black text-slate-900 dark:text-white text-4xl md:text-6xl tracking-tight"
+              >
                 Leaderboard
               </h1>
-              <p class="mt-3 max-w-2xl text-slate-400">
+              <p class="mt-3 max-w-2xl text-slate-600 dark:text-slate-400">
                 Rankings are based on highest score. Ties are broken by fastest
                 completion time.
               </p>
             </div>
 
             <div
-              class="bg-slate-900/80 px-5 py-4 border border-slate-700 rounded-2xl"
+              class="bg-slate-100 dark:bg-slate-900/80 px-5 py-4 border border-slate-200 dark:border-slate-700 rounded-2xl"
             >
-              <p class="text-slate-400 text-sm">Total Entries</p>
-              <p class="font-black text-blue-400 text-3xl">
+              <p class="text-slate-500 dark:text-slate-400 text-sm">
+                Total Entries
+              </p>
+              <p class="font-black text-blue-600 dark:text-blue-400 text-3xl">
                 {{ filteredLeaderboard.length }}
               </p>
             </div>
@@ -134,7 +148,7 @@ function goBackHome() {
           <div class="gap-3 grid sm:grid-cols-2 mt-6 max-w-xl">
             <select
               v-model="selectedQuestionCount"
-              class="bg-slate-900 px-4 py-3 border border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
+              class="bg-white dark:bg-slate-900 px-4 py-3 border border-slate-300 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white transition"
             >
               <option value="all">All Question Counts</option>
               <option
@@ -148,7 +162,7 @@ function goBackHome() {
 
             <select
               v-model="selectedTimeLimit"
-              class="bg-slate-900 px-4 py-3 border border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
+              class="bg-white dark:bg-slate-900 px-4 py-3 border border-slate-300 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white transition"
             >
               <option value="all">All Time Limits</option>
               <option
@@ -166,7 +180,7 @@ function goBackHome() {
           <table class="w-full min-w-[1000px]">
             <thead>
               <tr
-                class="bg-slate-900/90 border-slate-800 border-b text-slate-400 text-xs uppercase tracking-[0.2em]"
+                class="bg-slate-100 dark:bg-slate-900/90 border-slate-200 dark:border-slate-800 border-b text-slate-500 dark:text-slate-400 text-xs uppercase tracking-[0.2em]"
               >
                 <th class="px-6 py-4 text-left">Rank</th>
                 <th class="px-6 py-4 text-left">Player</th>
@@ -182,7 +196,7 @@ function goBackHome() {
               <tr
                 v-for="entry in filteredLeaderboard"
                 :key="entry.id"
-                class="hover:bg-blue-500/5 border-slate-800 border-b transition"
+                class="hover:bg-blue-50 dark:hover:bg-blue-500/5 border-slate-200 dark:border-slate-800 border-b transition"
               >
                 <td class="px-6 py-5">
                   <div
@@ -194,39 +208,41 @@ function goBackHome() {
                 </td>
 
                 <td class="px-6 py-5">
-                  <p class="font-bold text-cyan-300 text-lg">
+                  <p class="font-bold text-cyan-700 dark:text-cyan-300 text-lg">
                     {{ entry.name || "Unknown User" }}
                   </p>
-                  <p class="text-slate-500 text-sm">
+                  <p class="text-slate-500 dark:text-slate-500 text-sm">
                     {{ entry.date || "Recent attempt" }}
                   </p>
                 </td>
 
-                <td class="px-6 py-5 text-slate-300">
+                <td class="px-6 py-5 text-slate-700 dark:text-slate-300">
                   {{ entry.companyName || "—" }}
                 </td>
 
-                <td class="px-6 py-5 text-slate-300">
+                <td class="px-6 py-5 text-slate-700 dark:text-slate-300">
                   {{ entry.district || "—" }}
                 </td>
 
                 <td class="px-6 py-5 text-center">
-                  <p class="font-black text-blue-400 text-2xl">
+                  <p
+                    class="font-black text-blue-600 dark:text-blue-400 text-2xl"
+                  >
                     {{ entry.score }}%
                   </p>
                 </td>
 
                 <td class="px-6 py-5 text-center">
-                  <p class="font-semibold text-slate-200">
+                  <p class="font-semibold text-slate-800 dark:text-slate-200">
                     {{ entry.questionCount }} Qs
                   </p>
-                  <p class="text-slate-500 text-sm">
+                  <p class="text-slate-500 dark:text-slate-500 text-sm">
                     {{ entry.timeLimitLabel || `${entry.timeLimit} Minutes` }}
                   </p>
                 </td>
 
                 <td class="px-6 py-5 text-center">
-                  <p class="font-bold text-blue-300">
+                  <p class="font-bold text-blue-700 dark:text-blue-300">
                     {{ formatDuration(entry.durationUsedSeconds) }}
                   </p>
                 </td>
@@ -234,7 +250,9 @@ function goBackHome() {
 
               <tr v-if="!filteredLeaderboard.length">
                 <td colspan="7" class="px-6 py-16 text-center">
-                  <p class="font-bold text-slate-300 text-xl">
+                  <p
+                    class="font-bold text-slate-700 dark:text-slate-300 text-xl"
+                  >
                     No leaderboard scores yet
                   </p>
                   <p class="mt-2 text-slate-500">
