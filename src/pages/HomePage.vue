@@ -279,10 +279,9 @@ onMounted(() => {
 
     await firebaseUser.reload()
 
-    if (usesPasswordProvider && !firebaseUser.emailVerified) {
-      user.value = null
-      return
-    }
+    const usesPasswordProvider = firebaseUser.providerData.some(
+      (provider) => provider.providerId === "password",
+    )
 
     if (usesPasswordProvider && !firebaseUser.emailVerified) {
       await signOut(auth)
