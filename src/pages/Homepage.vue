@@ -210,6 +210,11 @@ async function loadUserStats(firebaseUser) {
   }
 }
 
+function handleRetake() {
+  resetExam() // clear current state
+  initializeExam() // generates a new set of random questions
+}
+
 onMounted(() => {
   applyTheme()
   document.addEventListener("click", handleDocumentClick)
@@ -1222,7 +1227,7 @@ function handleDecline() {
           :results="results"
           :pass-percent="passPercent"
           @go-home="goHome"
-          @retake-exam="retakeExam"
+          @retake-exam="handleRetake"
         />
       </section>
 

@@ -47,7 +47,9 @@ function allocateCounts(weights, total) {
 }
 
 function selectWeightedQuestions(pool, weights, total) {
-  const grouped = pool.reduce((acc, question) => {
+  const randomizedPool = shuffle(pool)
+
+  const grouped = randomizedPool.reduce((acc, question) => {
     if (!acc[question.category]) {
       acc[question.category] = []
     }
@@ -89,7 +91,7 @@ function selectWeightedQuestions(pool, weights, total) {
   })
 
   if (selected.length < total) {
-    const remainingPool = pool.filter((question) => {
+    const remainingPool = randomizedPool.filter((question) => {
       const normalizedText = question.question.trim().toLowerCase()
       return !usedIds.has(question.id) && !usedQuestionText.has(normalizedText)
     })
@@ -147,11 +149,8 @@ export function useExamEngine() {
     examDurationSeconds.value = timeLimitMinutes * 60
     timeRemaining.value = examDurationSeconds.value
 
-    questions.value = selectWeightedQuestions(
-      fullPool,
-      categoryWeights,
-      questionCount,
-    )
+    // 100% random pull from the full question pool on every test/retake
+    questions.value = shuffle(fullPool).slice(0, questionCount)
 
     answers.value = {}
     currentIndex.value = 0
