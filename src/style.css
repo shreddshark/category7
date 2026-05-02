@@ -6,8 +6,6 @@ body,
   min-height: 100%;
 }
 
-@custom-variant dark (&:where(.dark, .dark *));
-
 body {
   @apply bg-slate-100 text-slate-900;
   font-family:
