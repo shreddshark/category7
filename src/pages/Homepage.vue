@@ -1,5 +1,14 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, watch, reactive, ref } from "vue"
+import {
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  watch,
+  reactive,
+  ref,
+  sendEmailVerification,
+  signOut,
+} from "vue"
 import DisclaimerModal from "@/components/DisclaimerModal.vue"
 import ExamHeader from "@/components/ExamHeader.vue"
 import QuestionCard from "@/components/QuestionCard.vue"
@@ -12,6 +21,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
+  sendEmailVerification,
   signOut,
   updateProfile,
   onAuthStateChanged,
@@ -61,12 +71,16 @@ function getAuthErrorMessage(error) {
   switch (code) {
     case "auth/invalid-email":
       return "Please enter a valid email address."
+    case "auth/missing-email":
+      return "Email is required."
     case "auth/email-already-in-use":
       return "An account already exists with this email."
     case "auth/weak-password":
       return "Password must be at least 6 characters."
     case "auth/missing-password":
       return "Please enter your password."
+    case "auth/operation-not-allowed":
+      return "Email and password signup is not enabled yet. Please enable it in Firebase Authentication."
     case "auth/too-many-requests":
       return "Too many failed attempts. Please try again later."
     case "auth/network-request-failed":
@@ -134,16 +148,27 @@ const authForm = reactive({
   confirmPassword: "",
 })
 
+const user = ref(null)
+const authError = ref("")
+const authSuccess = ref("")
+const authLoading = ref(false)
+
+function clearAuthMessages() {
+  authError.value = ""
+  authSuccess.value = ""
+}
+
+function resetAuthPasswords() {
+  authForm.password = ""
+  authForm.confirmPassword = ""
+}
+
 watch(
   () => [authForm.email, authForm.password, authForm.confirmPassword],
   () => {
-    authError.value = ""
+    clearAuthMessages()
   },
 )
-
-const user = ref(null)
-const authError = ref("")
-const authLoading = ref(false)
 
 const leaderboardQuestionCount = ref(100)
 const leaderboardTimeLimit = ref(120)
@@ -257,6 +282,18 @@ onMounted(() => {
 
   onAuthStateChanged(auth, async (firebaseUser) => {
     if (!firebaseUser) {
+      user.value = null
+      return
+    }
+
+    await firebaseUser.reload()
+
+    const usesPasswordProvider = firebaseUser.providerData.some(
+      (provider) => provider.providerId === "password",
+    )
+
+    if (usesPasswordProvider && !firebaseUser.emailVerified) {
+      await signOut(auth)
       user.value = null
       return
     }
@@ -380,17 +417,18 @@ async function handleSubmitExam() {
 function openAuthModal(mode) {
   authMode.value = mode
   showAuthModal.value = true
+  clearAuthMessages()
 }
 
 function closeAuthModal() {
   showAuthModal.value = false
+  clearAuthMessages()
 }
 
 async function handleLogin() {
-  authError.value = ""
+  clearAuthMessages()
   authLoading.value = true
 
-  // 🔥 Prevent Firebase from throwing in the first place
   if (!authForm.email.trim()) {
     authError.value = "Email is required."
     authLoading.value = false
@@ -404,15 +442,29 @@ async function handleLogin() {
   }
 
   try {
-    await signInWithEmailAndPassword(
+    const userCredential = await signInWithEmailAndPassword(
       auth,
       authForm.email.trim(),
       authForm.password,
     )
 
+    await userCredential.user.reload()
+
+    const usesPasswordProvider = userCredential.user.providerData.some(
+      (provider) => provider.providerId === "password",
+    )
+
+    if (usesPasswordProvider && !userCredential.user.emailVerified) {
+      await signOut(auth)
+      resetAuthPasswords()
+      authError.value =
+        "Please verify your email before signing in. Check your inbox for the verification link."
+      return
+    }
+
+    resetAuthPasswords()
     showAuthModal.value = false
   } catch (error) {
-    console.log("Firebase error:", error) // debug
     authError.value = getAuthErrorMessage(error)
   } finally {
     authLoading.value = false
@@ -421,6 +473,27 @@ async function handleLogin() {
 
 async function handleRegister() {
   authError.value = ""
+  authLoading.value = false
+
+  if (!authForm.displayName.trim()) {
+    authError.value = "Display name is required."
+    return
+  }
+
+  if (!authForm.email.trim()) {
+    authError.value = "Email is required."
+    return
+  }
+
+  if (!authForm.password) {
+    authError.value = "Password is required."
+    return
+  }
+
+  if (authForm.password.length < 6) {
+    authError.value = "Password must be at least 6 characters."
+    return
+  }
 
   if (authForm.password !== authForm.confirmPassword) {
     authError.value = "Passwords do not match."
@@ -440,28 +513,25 @@ async function handleRegister() {
       displayName: authForm.displayName.trim(),
     })
 
+    await sendEmailVerification(userCredential.user)
+
     await setDoc(doc(db, "users", userCredential.user.uid), {
       uid: userCredential.user.uid,
       displayName: authForm.displayName.trim(),
       companyName: authForm.companyName.trim(),
       district: authForm.district.trim(),
       email: userCredential.user.email,
+      emailVerified: false,
       createdAt: new Date(),
     })
 
-    user.value = {
-      uid: userCredential.user.uid,
-      displayName: authForm.displayName.trim(),
-      email: userCredential.user.email,
-      companyName: authForm.companyName.trim(),
-      district: authForm.district.trim(),
-      bestScore: 0,
-      rank: "-",
-      attempts: 0,
-    }
+    await signOut(auth)
 
-    showAuthModal.value = false
+    authMode.value = "login"
+    authError.value =
+      "Account created. Please check your email and verify your account before signing in."
   } catch (error) {
+    console.log("Firebase register error:", error.code, error.message)
     authError.value = getAuthErrorMessage(error)
   } finally {
     authLoading.value = false
@@ -469,12 +539,18 @@ async function handleRegister() {
 }
 
 async function handlePasswordReset() {
-  authError.value = ""
+  clearAuthMessages()
+
+  if (!authForm.email.trim()) {
+    authError.value = "Email is required."
+    return
+  }
+
   authLoading.value = true
 
   try {
     await sendPasswordResetEmail(auth, authForm.email.trim())
-    authError.value = "Password reset email sent."
+    authSuccess.value = "Password reset email sent. Please check your inbox."
   } catch (error) {
     authError.value = getAuthErrorMessage(error)
   } finally {
@@ -595,6 +671,13 @@ function handleDecline() {
           class="bg-red-50 dark:bg-red-950/40 mb-4 px-4 py-3 border border-red-200 dark:border-red-900 rounded-2xl font-semibold text-red-700 dark:text-red-300 text-sm"
         >
           {{ authError }}
+        </p>
+
+        <p
+          v-if="authSuccess"
+          class="bg-emerald-50 dark:bg-emerald-950/40 mb-4 px-4 py-3 border border-emerald-200 dark:border-emerald-900 rounded-2xl font-semibold text-emerald-700 dark:text-emerald-300 text-sm"
+        >
+          {{ authSuccess }}
         </p>
 
         <form
