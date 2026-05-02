@@ -47,7 +47,9 @@ function allocateCounts(weights, total) {
 }
 
 function selectWeightedQuestions(pool, weights, total) {
-  const grouped = pool.reduce((acc, question) => {
+  const randomizedPool = shuffle(pool)
+
+  const grouped = randomizedPool.reduce((acc, question) => {
     if (!acc[question.category]) {
       acc[question.category] = []
     }
@@ -89,7 +91,7 @@ function selectWeightedQuestions(pool, weights, total) {
   })
 
   if (selected.length < total) {
-    const remainingPool = pool.filter((question) => {
+    const remainingPool = randomizedPool.filter((question) => {
       const normalizedText = question.question.trim().toLowerCase()
       return !usedIds.has(question.id) && !usedQuestionText.has(normalizedText)
     })
@@ -98,6 +100,7 @@ function selectWeightedQuestions(pool, weights, total) {
       remainingPool,
       total - selected.length,
     )
+
     selected.push(...fillerQuestions)
   }
 
@@ -112,6 +115,7 @@ export function useExamEngine() {
   const started = ref(false)
   const completed = ref(false)
   const timeRemaining = ref(EXAM_DURATION_SECONDS)
+  const examDurationSeconds = ref(EXAM_DURATION_SECONDS)
   const results = ref(null)
 
   let timerId = null
@@ -142,18 +146,18 @@ export function useExamEngine() {
     const timeLimitMinutes =
       options.timeLimitMinutes ?? EXAM_DURATION_SECONDS / 60
 
-    questions.value = selectWeightedQuestions(
-      fullPool,
-      categoryWeights,
-      questionCount,
-    )
+    examDurationSeconds.value = timeLimitMinutes * 60
+    timeRemaining.value = examDurationSeconds.value
+
+    // 100% random pull from the full question pool on every test/retake
+    questions.value = shuffle(fullPool).slice(0, questionCount)
 
     answers.value = {}
     currentIndex.value = 0
     completed.value = false
     results.value = null
-    timeRemaining.value = timeLimitMinutes * 60
     started.value = true
+
     startTimer()
   }
 
@@ -222,6 +226,11 @@ export function useExamEngine() {
       ((correct / questions.value.length) * 100).toFixed(1),
     )
 
+    const durationUsedSeconds = Math.max(
+      0,
+      examDurationSeconds.value - timeRemaining.value,
+    )
+
     results.value = {
       autoSubmitted,
       correct,
@@ -230,6 +239,7 @@ export function useExamEngine() {
       total: questions.value.length,
       percent,
       passed: percent >= PASSING_PERCENT,
+      durationUsedSeconds,
       categoryStats,
       questions: questions.value,
       answers: answers.value,
@@ -238,9 +248,23 @@ export function useExamEngine() {
     completed.value = true
   }
 
+  function resetExam() {
+    stopTimer()
+
+    questions.value = []
+    answers.value = {}
+    currentIndex.value = 0
+    started.value = false
+    completed.value = false
+    results.value = null
+    timeRemaining.value = EXAM_DURATION_SECONDS
+    examDurationSeconds.value = EXAM_DURATION_SECONDS
+  }
+
   const currentQuestion = computed(
     () => questions.value[currentIndex.value] || null,
   )
+
   const answeredCount = computed(() => Object.keys(answers.value).length)
 
   const formattedTime = computed(() => {
@@ -248,10 +272,13 @@ export function useExamEngine() {
       2,
       "0",
     )
+
     const minutes = String(
       Math.floor((timeRemaining.value % 3600) / 60),
     ).padStart(2, "0")
+
     const seconds = String(timeRemaining.value % 60).padStart(2, "0")
+
     return `${hours}:${minutes}:${seconds}`
   })
 
@@ -277,6 +304,7 @@ export function useExamEngine() {
     nextQuestion,
     prevQuestion,
     submitExam,
+    resetExam,
     passPercent: PASSING_PERCENT,
   }
 }
