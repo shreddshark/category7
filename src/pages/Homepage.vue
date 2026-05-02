@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue"
+import { computed, onBeforeUnmount, onMounted, watch, reactive, ref } from "vue"
 import DisclaimerModal from "@/components/DisclaimerModal.vue"
 import ExamHeader from "@/components/ExamHeader.vue"
 import QuestionCard from "@/components/QuestionCard.vue"
@@ -46,6 +46,35 @@ const timeLimitOptions = [
   { label: "1 Hour", value: 60 },
   { label: "2 Hours", value: 120 },
 ]
+
+function getAuthErrorMessage(error) {
+  const code = error?.code || ""
+  const rawMessage = error?.message || ""
+
+  if (
+    rawMessage.includes("auth/invalid-credential") ||
+    code === "auth/invalid-credential"
+  ) {
+    return "Invalid email or password."
+  }
+
+  switch (code) {
+    case "auth/invalid-email":
+      return "Please enter a valid email address."
+    case "auth/email-already-in-use":
+      return "An account already exists with this email."
+    case "auth/weak-password":
+      return "Password must be at least 6 characters."
+    case "auth/missing-password":
+      return "Please enter your password."
+    case "auth/too-many-requests":
+      return "Too many failed attempts. Please try again later."
+    case "auth/network-request-failed":
+      return "Network error. Check your connection."
+    default:
+      return "Something went wrong. Please try again."
+  }
+}
 
 const selectedQuestionCount = ref(100)
 const selectedTimeLimit = ref(120)
@@ -104,6 +133,13 @@ const authForm = reactive({
   password: "",
   confirmPassword: "",
 })
+
+watch(
+  () => [authForm.email, authForm.password, authForm.confirmPassword],
+  () => {
+    authError.value = ""
+  },
+)
 
 const user = ref(null)
 const authError = ref("")
@@ -354,6 +390,19 @@ async function handleLogin() {
   authError.value = ""
   authLoading.value = true
 
+  // 🔥 Prevent Firebase from throwing in the first place
+  if (!authForm.email.trim()) {
+    authError.value = "Email is required."
+    authLoading.value = false
+    return
+  }
+
+  if (!authForm.password) {
+    authError.value = "Password is required."
+    authLoading.value = false
+    return
+  }
+
   try {
     await signInWithEmailAndPassword(
       auth,
@@ -363,7 +412,8 @@ async function handleLogin() {
 
     showAuthModal.value = false
   } catch (error) {
-    authError.value = error.message
+    console.log("Firebase error:", error) // debug
+    authError.value = getAuthErrorMessage(error)
   } finally {
     authLoading.value = false
   }
@@ -412,7 +462,7 @@ async function handleRegister() {
 
     showAuthModal.value = false
   } catch (error) {
-    authError.value = error.message
+    authError.value = getAuthErrorMessage(error)
   } finally {
     authLoading.value = false
   }
@@ -426,7 +476,7 @@ async function handlePasswordReset() {
     await sendPasswordResetEmail(auth, authForm.email.trim())
     authError.value = "Password reset email sent."
   } catch (error) {
-    authError.value = error.message
+    authError.value = getAuthErrorMessage(error)
   } finally {
     authLoading.value = false
   }
