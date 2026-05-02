@@ -1,14 +1,5 @@
 <script setup>
-import {
-  computed,
-  onBeforeUnmount,
-  onMounted,
-  watch,
-  reactive,
-  ref,
-  sendEmailVerification,
-  signOut,
-} from "vue"
+import { computed, onBeforeUnmount, onMounted, watch, reactive, ref } from "vue"
 import DisclaimerModal from "@/components/DisclaimerModal.vue"
 import ExamHeader from "@/components/ExamHeader.vue"
 import QuestionCard from "@/components/QuestionCard.vue"
@@ -197,10 +188,10 @@ const filteredLeaderboard = computed(() =>
     })),
 )
 
-async function loadUserStats(firebaseUser) {
+async function loadUserStats(uid) {
   const userScoresQuery = query(
     collection(db, "leaderboard"),
-    where("uid", "==", firebaseUser.uid),
+    where("uid", "==", uid),
   )
 
   const allScoresQuery = query(collection(db, "leaderboard"))
@@ -258,7 +249,7 @@ async function loadUserStats(firebaseUser) {
 
   const rankIndex = sortedEntries.findIndex(
     (entry) =>
-      entry.uid === firebaseUser.uid &&
+      entry.uid === uid &&
       entry.score === userBestEntry.score &&
       entry.questionCount === userBestEntry.questionCount &&
       entry.timeLimit === userBestEntry.timeLimit,
@@ -288,9 +279,10 @@ onMounted(() => {
 
     await firebaseUser.reload()
 
-    const usesPasswordProvider = firebaseUser.providerData.some(
-      (provider) => provider.providerId === "password",
-    )
+    if (usesPasswordProvider && !firebaseUser.emailVerified) {
+      user.value = null
+      return
+    }
 
     if (usesPasswordProvider && !firebaseUser.emailVerified) {
       await signOut(auth)
@@ -301,7 +293,7 @@ onMounted(() => {
     const userProfileSnap = await getDoc(doc(db, "users", firebaseUser.uid))
     const userProfile = userProfileSnap.exists() ? userProfileSnap.data() : {}
 
-    const stats = await loadUserStats(firebaseUser)
+    const stats = await loadUserStats(firebaseUser.uid)
 
     user.value = {
       uid: firebaseUser.uid,
@@ -329,13 +321,10 @@ onMounted(() => {
     }))
   })
 
-  const hasSeenDisclaimer = localStorage.getItem("seenDisclaimer")
+  const hasSeenDisclaimer = localStorage.getItem("seenDisclaimer") === "true"
 
-  if (!hasSeenDisclaimer) {
-    showDisclaimer.value = true
-  } else {
-    agreed.value = true
-  }
+  agreed.value = hasSeenDisclaimer
+  showDisclaimer.value = false
 })
 
 onBeforeUnmount(() => {
@@ -398,9 +387,7 @@ async function handleSubmitExam() {
       selectedTimeLimitOption?.label || `${selectedTimeLimit.value} Minutes`,
     durationUsedSeconds: results.value?.durationUsedSeconds ?? null,
   })
-  const updatedStats = await loadUserStats({
-    uid: user.value.uid,
-  })
+  const updatedStats = await loadUserStats(user.value.uid)
 
   user.value = {
     ...user.value,
@@ -525,11 +512,9 @@ async function handleRegister() {
       createdAt: new Date(),
     })
 
-    await signOut(auth)
-
     authMode.value = "login"
     authError.value =
-      "Account created. Please check your email and verify your account before signing in."
+      "Account created! Check your email to verify before signing in."
   } catch (error) {
     console.log("Firebase register error:", error.code, error.message)
     authError.value = getAuthErrorMessage(error)
