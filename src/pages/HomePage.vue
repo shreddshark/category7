@@ -1482,10 +1482,6 @@ function handleDecline() {
           :formatted-time="formattedTime"
         />
 
-        <div style="background: red; color: white; padding: 10px">
-          TEST BUTTON AREA
-        </div>
-
         <div class="flex justify-end">
           <button
             type="button"
