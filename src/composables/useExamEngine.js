@@ -5,89 +5,62 @@ const EXAM_LENGTH = 100
 const EXAM_DURATION_SECONDS = 2 * 60 * 60
 const PASSING_PERCENT = 70
 
-function getRandomIndex(max) {
-  if (window.crypto?.getRandomValues) {
-    const array = new Uint32Array(1)
-    window.crypto.getRandomValues(array)
-    return array[0] % max
-  }
-
-  return Math.floor(Math.random() * max)
-}
-
 function shuffle(array) {
   const copy = [...array]
-
-  for (let i = copy.length - 1; i > 0; i -= 1) {
-    const j = getRandomIndex(i + 1)
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
     ;[copy[i], copy[j]] = [copy[j], copy[i]]
   }
-
   return copy
 }
 
-const recentlyUsedQuestionIds = new Set()
+// 🔥 Recent + Adaptive tracking
+const recentIds = new Set()
+const weakQuestionMap = new Map() // id -> times missed
 
 function getRecentLimit(questionCount, poolSize) {
-  if (questionCount <= 10) return Math.min(60, poolSize - questionCount)
-  if (questionCount <= 25) return Math.min(100, poolSize - questionCount)
-  if (questionCount <= 50) return Math.min(125, poolSize - questionCount)
-
-  return Math.min(75, poolSize - questionCount)
+  return Math.min(poolSize - questionCount, 75)
 }
 
-function rememberUsedQuestions(selectedQuestions, recentLimit) {
-  selectedQuestions.forEach((question) => {
-    recentlyUsedQuestionIds.add(question.id)
-  })
-
-  while (recentlyUsedQuestionIds.size > recentLimit) {
-    const oldestId = recentlyUsedQuestionIds.values().next().value
-    recentlyUsedQuestionIds.delete(oldestId)
-  }
-}
-
-function getRandomExamQuestions(pool, questionCount) {
+// 🔥 ADAPTIVE RANDOM LOGIC
+function getAdaptiveQuestions(pool, questionCount) {
   const recentLimit = getRecentLimit(questionCount, pool.length)
-  const uniqueQuestions = []
-  const fallbackQuestions = []
-  const usedIds = new Set()
-  const usedQuestionText = new Set()
 
-  for (const question of shuffle(pool)) {
-    const normalizedText = question.question.trim().toLowerCase()
+  // Step 1: Separate weak vs normal
+  const weakQuestions = []
+  const normalQuestions = []
 
-    if (usedIds.has(question.id)) continue
-    if (usedQuestionText.has(normalizedText)) continue
+  for (const q of pool) {
+    if (recentIds.has(q.id)) continue
 
-    usedIds.add(question.id)
-    usedQuestionText.add(normalizedText)
-
-    if (recentlyUsedQuestionIds.has(question.id)) {
-      fallbackQuestions.push(question)
+    if (weakQuestionMap.has(q.id)) {
+      weakQuestions.push(q)
     } else {
-      uniqueQuestions.push(question)
-    }
-
-    if (uniqueQuestions.length === questionCount) {
-      break
+      normalQuestions.push(q)
     }
   }
 
-  if (uniqueQuestions.length < questionCount) {
-    uniqueQuestions.push(
-      ...shuffle(fallbackQuestions).slice(
-        0,
-        questionCount - uniqueQuestions.length,
-      ),
-    )
+  // Step 2: Prioritize weak questions (up to 30%)
+  const weakTarget = Math.floor(questionCount * 0.3)
+
+  const selectedWeak = shuffle(weakQuestions).slice(0, weakTarget)
+  const remainingCount = questionCount - selectedWeak.length
+
+  const selectedNormal = shuffle(
+    normalQuestions.length ? normalQuestions : pool,
+  ).slice(0, remainingCount)
+
+  const final = shuffle([...selectedWeak, ...selectedNormal])
+
+  // Step 3: remember recent
+  final.forEach((q) => recentIds.add(q.id))
+
+  while (recentIds.size > recentLimit) {
+    const first = recentIds.values().next().value
+    recentIds.delete(first)
   }
 
-  const selectedQuestions = shuffle(uniqueQuestions).slice(0, questionCount)
-
-  rememberUsedQuestions(selectedQuestions, recentLimit)
-
-  return selectedQuestions
+  return final
 }
 
 export function useExamEngine() {
@@ -112,7 +85,6 @@ export function useExamEngine() {
         submitExam(true)
         return
       }
-
       timeRemaining.value -= 1
     }, 1000)
   }
@@ -132,7 +104,8 @@ export function useExamEngine() {
     examDurationSeconds.value = timeLimitMinutes * 60
     timeRemaining.value = examDurationSeconds.value
 
-    questions.value = getRandomExamQuestions(fullPool, questionCount)
+    // 🔥 adaptive selection
+    questions.value = getAdaptiveQuestions(fullPool, questionCount)
 
     answers.value = {}
     currentIndex.value = 0
@@ -147,24 +120,6 @@ export function useExamEngine() {
     answers.value = {
       ...answers.value,
       [questionId]: choice,
-    }
-  }
-
-  function goToQuestion(index) {
-    if (index >= 0 && index < questions.value.length) {
-      currentIndex.value = index
-    }
-  }
-
-  function nextQuestion() {
-    if (currentIndex.value < questions.value.length - 1) {
-      currentIndex.value += 1
-    }
-  }
-
-  function prevQuestion() {
-    if (currentIndex.value > 0) {
-      currentIndex.value -= 1
     }
   }
 
@@ -190,16 +145,23 @@ export function useExamEngine() {
         }
       }
 
-      categoryStats[question.category].total += 1
+      categoryStats[question.category].total++
 
       if (isCorrect) {
-        correct += 1
-        categoryStats[question.category].correct += 1
+        correct++
+        // 🔥 reward learning (remove from weak)
+        weakQuestionMap.delete(question.id)
+      } else {
+        // 🔥 track weak questions
+        weakQuestionMap.set(
+          question.id,
+          (weakQuestionMap.get(question.id) || 0) + 1,
+        )
       }
 
       if (isUnanswered) {
-        unanswered += 1
-        categoryStats[question.category].unanswered += 1
+        unanswered++
+        categoryStats[question.category].unanswered++
       }
     })
 
@@ -254,11 +216,9 @@ export function useExamEngine() {
       2,
       "0",
     )
-
     const minutes = String(
       Math.floor((timeRemaining.value % 3600) / 60),
     ).padStart(2, "0")
-
     const seconds = String(timeRemaining.value % 60).padStart(2, "0")
 
     return `${hours}:${minutes}:${seconds}`
@@ -282,9 +242,6 @@ export function useExamEngine() {
     formattedTime,
     initializeExam,
     answerQuestion,
-    goToQuestion,
-    nextQuestion,
-    prevQuestion,
     submitExam,
     resetExam,
     passPercent: PASSING_PERCENT,
