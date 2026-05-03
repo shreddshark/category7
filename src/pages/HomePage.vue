@@ -66,6 +66,13 @@ const timeLimitOptions = [
   { label: "2 Hours", value: 120 },
 ]
 
+const defaultTimeLimitByQuestionCount = {
+  10: 15,
+  25: 30,
+  50: 60,
+  100: 120,
+}
+
 const authForm = reactive({
   displayName: "",
   companyName: "",
@@ -99,6 +106,10 @@ const {
   passPercent,
   resetExam,
 } = useExamEngine()
+
+const isLastQuestion = computed(
+  () => currentIndex.value === questions.value.length - 1,
+)
 
 const getInitialTheme = () => {
   const savedTheme = localStorage.getItem("theme")
@@ -237,6 +248,11 @@ watch(
     clearAuthMessages()
   },
 )
+
+watch(selectedQuestionCount, (questionCount) => {
+  selectedTimeLimit.value =
+    defaultTimeLimitByQuestionCount[Number(questionCount)] || 120
+})
 
 async function loadUserStats(uid) {
   try {
@@ -1492,20 +1508,24 @@ function handleDecline() {
                 Previous
               </button>
 
-              <div class="sm:flex sm:flex-row gap-3 grid grid-cols-2">
+              <div class="sm:flex sm:flex-row gap-3 grid">
                 <button
+                  v-if="!isLastQuestion"
                   type="button"
                   class="hover:bg-blue-50 dark:hover:bg-blue-950/40 px-5 py-3 border border-blue-300 dark:border-blue-800 rounded-2xl font-semibold text-blue-700 dark:text-blue-400 transition"
                   @click="nextQuestion"
                 >
                   Next
                 </button>
+
                 <button
+                  v-else
                   type="button"
-                  class="bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-700 px-5 py-3 rounded-2xl font-semibold text-white transition"
+                  :disabled="submittingExam"
+                  class="bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-700 disabled:opacity-60 px-5 py-3 rounded-2xl font-semibold text-white transition"
                   @click="handleSubmitExam"
                 >
-                  Submit
+                  {{ submittingExam ? "Submitting..." : "Submit" }}
                 </button>
               </div>
             </div>

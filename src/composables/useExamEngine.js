@@ -1,110 +1,52 @@
 import { computed, onBeforeUnmount, ref } from "vue"
-import { questionPool, categoryWeights } from "../assets/questions"
+import { questionPool } from "../assets/questions"
 
 const EXAM_LENGTH = 100
 const EXAM_DURATION_SECONDS = 2 * 60 * 60
 const PASSING_PERCENT = 70
 
+function getRandomIndex(max) {
+  if (window.crypto?.getRandomValues) {
+    const array = new Uint32Array(1)
+    window.crypto.getRandomValues(array)
+    return array[0] % max
+  }
+
+  return Math.floor(Math.random() * max)
+}
+
 function shuffle(array) {
   const copy = [...array]
 
   for (let i = copy.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1))
+    const j = getRandomIndex(i + 1)
     ;[copy[i], copy[j]] = [copy[j], copy[i]]
   }
 
   return copy
 }
 
-function allocateCounts(weights, total) {
-  const entries = Object.entries(weights)
-  const totalWeight = entries.reduce((sum, [, value]) => sum + value, 0)
-
-  const raw = entries.map(([category, weight]) => ({
-    category,
-    exact: (weight / totalWeight) * total,
-  }))
-
-  const counts = raw.map((item) => ({
-    category: item.category,
-    count: Math.floor(item.exact),
-    remainder: item.exact - Math.floor(item.exact),
-  }))
-
-  let assigned = counts.reduce((sum, item) => sum + item.count, 0)
-
-  while (assigned < total) {
-    counts.sort((a, b) => b.remainder - a.remainder)
-    counts[0].count += 1
-    counts[0].remainder = 0
-    assigned += 1
-  }
-
-  return counts.reduce((acc, item) => {
-    acc[item.category] = item.count
-    return acc
-  }, {})
-}
-
-function selectWeightedQuestions(pool, weights, total) {
-  const randomizedPool = shuffle(pool)
-
-  const grouped = randomizedPool.reduce((acc, question) => {
-    if (!acc[question.category]) {
-      acc[question.category] = []
-    }
-
-    acc[question.category].push(question)
-    return acc
-  }, {})
-
-  const allocation = allocateCounts(weights, total)
-  const selected = []
+function getRandomExamQuestions(pool, questionCount) {
+  const uniqueQuestions = []
   const usedIds = new Set()
   const usedQuestionText = new Set()
 
-  function addUniqueQuestions(sourceQuestions, countNeeded) {
-    const added = []
+  for (const question of shuffle(pool)) {
+    const normalizedText = question.question.trim().toLowerCase()
 
-    for (const question of shuffle(sourceQuestions)) {
-      const normalizedText = question.question.trim().toLowerCase()
+    if (usedIds.has(question.id)) continue
+    if (usedQuestionText.has(normalizedText)) continue
 
-      if (usedIds.has(question.id)) continue
-      if (usedQuestionText.has(normalizedText)) continue
+    usedIds.add(question.id)
+    usedQuestionText.add(normalizedText)
+    uniqueQuestions.push(question)
 
-      usedIds.add(question.id)
-      usedQuestionText.add(normalizedText)
-      added.push(question)
-
-      if (added.length === countNeeded) {
-        break
-      }
+    if (uniqueQuestions.length === questionCount) {
+      break
     }
-
-    return added
   }
 
-  Object.entries(allocation).forEach(([category, needed]) => {
-    const available = grouped[category] || []
-    const uniqueQuestions = addUniqueQuestions(available, needed)
-    selected.push(...uniqueQuestions)
-  })
-
-  if (selected.length < total) {
-    const remainingPool = randomizedPool.filter((question) => {
-      const normalizedText = question.question.trim().toLowerCase()
-      return !usedIds.has(question.id) && !usedQuestionText.has(normalizedText)
-    })
-
-    const fillerQuestions = addUniqueQuestions(
-      remainingPool,
-      total - selected.length,
-    )
-
-    selected.push(...fillerQuestions)
-  }
-
-  return shuffle(selected).slice(0, total)
+  return shuffle(uniqueQuestions)
 }
 
 export function useExamEngine() {
@@ -142,15 +84,14 @@ export function useExamEngine() {
   }
 
   function initializeExam(options = {}) {
-    const questionCount = options.questionCount ?? EXAM_LENGTH
+    const questionCount = Number(options.questionCount ?? EXAM_LENGTH)
     const timeLimitMinutes =
-      options.timeLimitMinutes ?? EXAM_DURATION_SECONDS / 60
+      Number(options.timeLimitMinutes) || EXAM_DURATION_SECONDS / 60
 
     examDurationSeconds.value = timeLimitMinutes * 60
     timeRemaining.value = examDurationSeconds.value
 
-    // 100% random pull from the full question pool on every test/retake
-    questions.value = shuffle(fullPool).slice(0, questionCount)
+    questions.value = getRandomExamQuestions(fullPool, questionCount)
 
     answers.value = {}
     currentIndex.value = 0
