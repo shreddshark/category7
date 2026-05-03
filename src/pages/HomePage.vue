@@ -742,6 +742,7 @@ function handleDecline() {
             <input
               v-model="authForm.email"
               type="email"
+              autocomplete="email"
               class="bg-white dark:bg-slate-800 px-4 py-3 border border-slate-300 focus:border-blue-500 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 w-full text-slate-900 dark:text-white placeholder:text-slate-400 transition"
               placeholder="Enter your email"
             />
@@ -753,12 +754,24 @@ function handleDecline() {
             >
               Password
             </label>
-            <input
-              v-model="authForm.password"
-              :type="showPassword ? 'text' : 'password'"
-              class="bg-white dark:bg-slate-800 px-4 py-3 border border-slate-300 focus:border-blue-500 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 w-full text-slate-900 dark:text-white placeholder:text-slate-400 transition"
-              placeholder="Enter your password"
-            />
+
+            <div class="relative">
+              <input
+                v-model="authForm.password"
+                :type="showPassword ? 'text' : 'password'"
+                autocomplete="current-password"
+                class="bg-white dark:bg-slate-800 px-4 py-3 pr-20 border border-slate-300 focus:border-blue-500 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 w-full text-slate-900 dark:text-white placeholder:text-slate-400 transition"
+                placeholder="Enter your password"
+              />
+
+              <button
+                type="button"
+                class="top-1/2 right-3 absolute font-semibold text-blue-700 hover:text-blue-900 dark:hover:text-blue-300 dark:text-blue-400 text-sm -translate-y-1/2"
+                @click="showPassword = !showPassword"
+              >
+                {{ showPassword ? "Hide" : "Show" }}
+              </button>
+            </div>
           </div>
 
           <button
@@ -803,6 +816,7 @@ function handleDecline() {
             <input
               v-model="authForm.displayName"
               type="text"
+              autocomplete="name"
               class="bg-white dark:bg-slate-800 px-4 py-3 border border-slate-300 focus:border-blue-500 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 w-full text-slate-900 dark:text-white placeholder:text-slate-400 transition"
               placeholder="Enter your display name"
             />
@@ -851,6 +865,7 @@ function handleDecline() {
             <input
               v-model="authForm.email"
               type="email"
+              autocomplete="email"
               class="bg-white dark:bg-slate-800 px-4 py-3 border border-slate-300 focus:border-blue-500 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 w-full text-slate-900 dark:text-white placeholder:text-slate-400 transition"
               placeholder="Enter your email"
             />
@@ -862,12 +877,24 @@ function handleDecline() {
             >
               Password
             </label>
-            <input
-              v-model="authForm.password"
-              :type="showPassword ? 'text' : 'password'"
-              class="bg-white dark:bg-slate-800 px-4 py-3 border border-slate-300 focus:border-blue-500 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 w-full text-slate-900 dark:text-white placeholder:text-slate-400 transition"
-              placeholder="Create a password"
-            />
+
+            <div class="relative">
+              <input
+                v-model="authForm.password"
+                :type="showPassword ? 'text' : 'password'"
+                autocomplete="new-password"
+                class="bg-white dark:bg-slate-800 px-4 py-3 pr-20 border border-slate-300 focus:border-blue-500 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 w-full text-slate-900 dark:text-white placeholder:text-slate-400 transition"
+                placeholder="Create a password"
+              />
+
+              <button
+                type="button"
+                class="top-1/2 right-3 absolute font-semibold text-blue-700 hover:text-blue-900 dark:hover:text-blue-300 dark:text-blue-400 text-sm -translate-y-1/2"
+                @click="showPassword = !showPassword"
+              >
+                {{ showPassword ? "Hide" : "Show" }}
+              </button>
+            </div>
           </div>
 
           <div>
@@ -876,12 +903,24 @@ function handleDecline() {
             >
               Confirm Password
             </label>
-            <input
-              v-model="authForm.confirmPassword"
-              :type="showPassword ? 'text' : 'password'"
-              class="bg-white dark:bg-slate-800 px-4 py-3 border border-slate-300 focus:border-blue-500 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 w-full text-slate-900 dark:text-white placeholder:text-slate-400 transition"
-              placeholder="Confirm your password"
-            />
+
+            <div class="relative">
+              <input
+                v-model="authForm.confirmPassword"
+                :type="showPassword ? 'text' : 'password'"
+                autocomplete="new-password"
+                class="bg-white dark:bg-slate-800 px-4 py-3 pr-20 border border-slate-300 focus:border-blue-500 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 w-full text-slate-900 dark:text-white placeholder:text-slate-400 transition"
+                placeholder="Confirm your password"
+              />
+
+              <button
+                type="button"
+                class="top-1/2 right-3 absolute font-semibold text-blue-700 hover:text-blue-900 dark:hover:text-blue-300 dark:text-blue-400 text-sm -translate-y-1/2"
+                @click="showPassword = !showPassword"
+              >
+                {{ showPassword ? "Hide" : "Show" }}
+              </button>
+            </div>
           </div>
 
           <button
@@ -914,6 +953,7 @@ function handleDecline() {
             <input
               v-model="authForm.email"
               type="email"
+              autocomplete="email"
               class="bg-white dark:bg-slate-800 px-4 py-3 border border-slate-300 focus:border-blue-500 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 w-full text-slate-900 dark:text-white placeholder:text-slate-400 transition"
               placeholder="Enter your account email"
             />
