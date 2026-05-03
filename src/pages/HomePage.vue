@@ -40,13 +40,106 @@ const mobileNavOpen = ref(true)
 const settingsMenuRef = ref(null)
 const settingsMenuOpen = ref(false)
 
+const selectedQuestionCount = ref(100)
+const selectedTimeLimit = ref(120)
+
+const showAuthModal = ref(false)
+const authMode = ref("login")
+const showPassword = ref(false)
+
+const user = ref(null)
+const authError = ref("")
+const authSuccess = ref("")
+const authLoading = ref(false)
+const registeringUser = ref(false)
+const submittingExam = ref(false)
+
+let unsubscribeAuth = null
+let unsubscribeLeaderboard = null
+
 const questionCountOptions = [10, 25, 50, 100]
+
 const timeLimitOptions = [
   { label: "15 Minutes", value: 15 },
   { label: "30 Minutes", value: 30 },
   { label: "1 Hour", value: 60 },
   { label: "2 Hours", value: 120 },
 ]
+
+const authForm = reactive({
+  displayName: "",
+  companyName: "",
+  district: "",
+  email: "",
+  password: "",
+  confirmPassword: "",
+})
+
+const leaderboardQuestionCount = ref(100)
+const leaderboardTimeLimit = ref(120)
+const showFullLeaderboard = ref(false)
+const leaderboardEntries = ref([])
+
+const {
+  questions,
+  answers,
+  currentIndex,
+  currentQuestion,
+  started,
+  completed,
+  results,
+  answeredCount,
+  formattedTime,
+  initializeExam,
+  answerQuestion,
+  goToQuestion,
+  nextQuestion,
+  prevQuestion,
+  submitExam,
+  passPercent,
+  resetExam,
+} = useExamEngine()
+
+const getInitialTheme = () => {
+  const savedTheme = localStorage.getItem("theme")
+
+  if (savedTheme === "light" || savedTheme === "dark") {
+    return savedTheme
+  }
+
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light"
+}
+
+const theme = ref(getInitialTheme())
+const isDarkMode = computed(() => theme.value === "dark")
+
+const filteredLeaderboard = computed(() =>
+  leaderboardEntries.value
+    .filter(
+      (entry) =>
+        Number(entry.questionCount) ===
+          Number(leaderboardQuestionCount.value) &&
+        Number(entry.timeLimit) === Number(leaderboardTimeLimit.value),
+    )
+    .sort((a, b) => {
+      const aScore = Number(a.score ?? a.percent ?? 0)
+      const bScore = Number(b.score ?? b.percent ?? 0)
+
+      if (bScore !== aScore) return bScore - aScore
+
+      const aDuration = a.durationUsedSeconds ?? Number.MAX_SAFE_INTEGER
+      const bDuration = b.durationUsedSeconds ?? Number.MAX_SAFE_INTEGER
+
+      return aDuration - bDuration
+    })
+    .slice(0, showFullLeaderboard.value ? 100 : 10)
+    .map((entry, index) => ({
+      ...entry,
+      rank: index + 1,
+    })),
+)
 
 function getAuthErrorMessage(error) {
   const code = error?.code || ""
@@ -76,33 +169,22 @@ function getAuthErrorMessage(error) {
       return "Too many failed attempts. Please try again later."
     case "auth/network-request-failed":
       return "Network error. Check your connection."
+    case "permission-denied":
+      return "Your account was created, but your profile could not be saved because Firestore permissions blocked it."
     default:
       return "Something went wrong. Please try again."
   }
 }
 
-const selectedQuestionCount = ref(100)
-const selectedTimeLimit = ref(120)
-
-const showAuthModal = ref(false)
-const authMode = ref("login")
-const showPassword = ref(false)
-
-const getInitialTheme = () => {
-  const savedTheme = localStorage.getItem("theme")
-
-  if (savedTheme === "light" || savedTheme === "dark") {
-    return savedTheme
-  }
-
-  return window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light"
+function clearAuthMessages() {
+  authError.value = ""
+  authSuccess.value = ""
 }
 
-const theme = ref(getInitialTheme())
-
-const isDarkMode = computed(() => theme.value === "dark")
+function resetAuthPasswords() {
+  authForm.password = ""
+  authForm.confirmPassword = ""
+}
 
 function applyTheme() {
   document.documentElement.classList.toggle("dark", isDarkMode.value)
@@ -130,28 +212,23 @@ function handleDocumentClick(event) {
   }
 }
 
-const authForm = reactive({
-  displayName: "",
-  companyName: "",
-  district: "",
-  email: "",
-  password: "",
-  confirmPassword: "",
-})
-
-const user = ref(null)
-const authError = ref("")
-const authSuccess = ref("")
-const authLoading = ref(false)
-
-function clearAuthMessages() {
-  authError.value = ""
-  authSuccess.value = ""
+function isPasswordProviderUser(firebaseUser) {
+  return firebaseUser?.providerData?.some(
+    (provider) => provider.providerId === "password",
+  )
 }
 
-function resetAuthPasswords() {
-  authForm.password = ""
-  authForm.confirmPassword = ""
+function buildUserObject(firebaseUser, userProfile, stats) {
+  return {
+    uid: firebaseUser.uid,
+    displayName: userProfile.displayName || firebaseUser.displayName || "User",
+    companyName: userProfile.companyName || "",
+    district: userProfile.district || "",
+    email: firebaseUser.email,
+    bestScore: stats.bestScore,
+    attempts: stats.attempts,
+    rank: stats.rank,
+  }
 }
 
 watch(
@@ -161,149 +238,121 @@ watch(
   },
 )
 
-const leaderboardQuestionCount = ref(100)
-const leaderboardTimeLimit = ref(120)
-const showFullLeaderboard = ref(false)
-const leaderboardEntries = ref([])
-
-const filteredLeaderboard = computed(() =>
-  leaderboardEntries.value
-    .filter(
-      (entry) =>
-        entry.questionCount === leaderboardQuestionCount.value &&
-        entry.timeLimit === leaderboardTimeLimit.value,
-    )
-    .sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score
-
-      const aDuration = a.durationUsedSeconds ?? Number.MAX_SAFE_INTEGER
-      const bDuration = b.durationUsedSeconds ?? Number.MAX_SAFE_INTEGER
-
-      return aDuration - bDuration
-    })
-    .slice(0, showFullLeaderboard.value ? 100 : 10)
-    .map((entry, index) => ({
-      ...entry,
-      rank: index + 1,
-    })),
-)
-
 async function loadUserStats(uid) {
-  const userScoresQuery = query(
-    collection(db, "leaderboard"),
-    where("uid", "==", uid),
-  )
+  try {
+    const userScoresQuery = query(
+      collection(db, "leaderboard"),
+      where("uid", "==", uid),
+    )
 
-  const allScoresQuery = query(collection(db, "leaderboard"))
+    const allScoresQuery = query(collection(db, "leaderboard"))
 
-  const [userSnapshot, allSnapshot] = await Promise.all([
-    getDocs(userScoresQuery),
-    getDocs(allScoresQuery),
-  ])
+    const [userSnapshot, allSnapshot] = await Promise.all([
+      getDocs(userScoresQuery),
+      getDocs(allScoresQuery),
+    ])
 
-  const userEntries = userSnapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  }))
+    const userEntries = userSnapshot.docs.map((scoreDoc) => ({
+      id: scoreDoc.id,
+      ...scoreDoc.data(),
+    }))
 
-  if (!userEntries.length) {
+    if (!userEntries.length) {
+      return {
+        bestScore: 0,
+        attempts: 0,
+        rank: "-",
+      }
+    }
+
+    const allEntries = allSnapshot.docs.map((scoreDoc) => ({
+      id: scoreDoc.id,
+      ...scoreDoc.data(),
+    }))
+
+    const sortedEntries = allEntries
+      .map((entry) => ({
+        ...entry,
+        score: Number(entry.score ?? entry.percent ?? 0),
+        durationUsedSeconds:
+          entry.durationUsedSeconds ?? Number.MAX_SAFE_INTEGER,
+      }))
+      .sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score
+        return a.durationUsedSeconds - b.durationUsedSeconds
+      })
+
+    const userBestEntry = userEntries
+      .map((entry) => ({
+        ...entry,
+        score: Number(entry.score ?? entry.percent ?? 0),
+        durationUsedSeconds:
+          entry.durationUsedSeconds ?? Number.MAX_SAFE_INTEGER,
+      }))
+      .sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score
+        return a.durationUsedSeconds - b.durationUsedSeconds
+      })[0]
+
+    const attempts = userEntries.reduce(
+      (total, entry) => total + Number(entry.attempts || 1),
+      0,
+    )
+
+    const rankIndex = sortedEntries.findIndex(
+      (entry) =>
+        entry.uid === uid &&
+        entry.score === userBestEntry.score &&
+        Number(entry.questionCount) === Number(userBestEntry.questionCount) &&
+        Number(entry.timeLimit) === Number(userBestEntry.timeLimit),
+    )
+
+    return {
+      bestScore: userBestEntry.score,
+      attempts,
+      rank: rankIndex >= 0 ? rankIndex + 1 : "-",
+    }
+  } catch (error) {
+    console.error("Failed to load user stats:", error)
+
     return {
       bestScore: 0,
       attempts: 0,
       rank: "-",
     }
   }
-
-  const allEntries = allSnapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  }))
-
-  const sortedEntries = allEntries
-    .map((entry) => ({
-      ...entry,
-      score: Number(entry.score ?? entry.percent ?? 0),
-      durationUsedSeconds: entry.durationUsedSeconds ?? Number.MAX_SAFE_INTEGER,
-    }))
-    .sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score
-      return a.durationUsedSeconds - b.durationUsedSeconds
-    })
-
-  const userBestEntry = userEntries
-    .map((entry) => ({
-      ...entry,
-      score: Number(entry.score ?? entry.percent ?? 0),
-      durationUsedSeconds: entry.durationUsedSeconds ?? Number.MAX_SAFE_INTEGER,
-    }))
-    .sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score
-      return a.durationUsedSeconds - b.durationUsedSeconds
-    })[0]
-
-  const bestScore = userBestEntry.score
-  const attempts = userEntries.reduce(
-    (total, entry) => total + Number(entry.attempts || 1),
-    0,
-  )
-
-  const rankIndex = sortedEntries.findIndex(
-    (entry) =>
-      entry.uid === uid &&
-      entry.score === userBestEntry.score &&
-      entry.questionCount === userBestEntry.questionCount &&
-      entry.timeLimit === userBestEntry.timeLimit,
-  )
-
-  return {
-    bestScore,
-    attempts,
-    rank: rankIndex >= 0 ? rankIndex + 1 : "-",
-  }
-}
-
-function handleRetake() {
-  resetExam() // clear current state
-  initializeExam() // generates a new set of random questions
 }
 
 onMounted(() => {
   applyTheme()
   document.addEventListener("click", handleDocumentClick)
 
-  onAuthStateChanged(auth, async (firebaseUser) => {
-    if (!firebaseUser) {
+  unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+    try {
+      if (!firebaseUser) {
+        user.value = null
+        return
+      }
+
+      await firebaseUser.reload()
+
+      if (isPasswordProviderUser(firebaseUser) && !firebaseUser.emailVerified) {
+        if (!registeringUser.value) {
+          await signOut(auth)
+        }
+
+        user.value = null
+        return
+      }
+
+      const userProfileSnap = await getDoc(doc(db, "users", firebaseUser.uid))
+      const userProfile = userProfileSnap.exists() ? userProfileSnap.data() : {}
+      const stats = await loadUserStats(firebaseUser.uid)
+
+      user.value = buildUserObject(firebaseUser, userProfile, stats)
+    } catch (error) {
+      console.error("Auth state error:", error)
       user.value = null
-      return
-    }
-
-    await firebaseUser.reload()
-
-    const usesPasswordProvider = firebaseUser.providerData.some(
-      (provider) => provider.providerId === "password",
-    )
-
-    if (usesPasswordProvider && !firebaseUser.emailVerified) {
-      await signOut(auth)
-      user.value = null
-      return
-    }
-
-    const userProfileSnap = await getDoc(doc(db, "users", firebaseUser.uid))
-    const userProfile = userProfileSnap.exists() ? userProfileSnap.data() : {}
-
-    const stats = await loadUserStats(firebaseUser.uid)
-
-    user.value = {
-      uid: firebaseUser.uid,
-      displayName:
-        userProfile.displayName || firebaseUser.displayName || "User",
-      companyName: userProfile.companyName || "",
-      district: userProfile.district || "",
-      email: firebaseUser.email,
-      bestScore: stats.bestScore,
-      attempts: stats.attempts,
-      rank: stats.rank,
     }
   })
 
@@ -312,13 +361,20 @@ onMounted(() => {
     orderBy("score", "desc"),
   )
 
-  onSnapshot(leaderboardQuery, (snapshot) => {
-    leaderboardEntries.value = snapshot.docs.map((doc, index) => ({
-      id: doc.id,
-      rank: index + 1,
-      ...doc.data(),
-    }))
-  })
+  unsubscribeLeaderboard = onSnapshot(
+    leaderboardQuery,
+    (snapshot) => {
+      leaderboardEntries.value = snapshot.docs.map((scoreDoc, index) => ({
+        id: scoreDoc.id,
+        rank: index + 1,
+        ...scoreDoc.data(),
+      }))
+    },
+    (error) => {
+      console.error("Leaderboard listener error:", error)
+      leaderboardEntries.value = []
+    },
+  )
 
   const hasSeenDisclaimer = localStorage.getItem("seenDisclaimer") === "true"
 
@@ -328,6 +384,14 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   document.removeEventListener("click", handleDocumentClick)
+
+  if (typeof unsubscribeAuth === "function") {
+    unsubscribeAuth()
+  }
+
+  if (typeof unsubscribeLeaderboard === "function") {
+    unsubscribeLeaderboard()
+  }
 })
 
 function formatDuration(seconds) {
@@ -345,59 +409,50 @@ function formatDuration(seconds) {
   return `${minutes}m ${remainingSeconds}s`
 }
 
-const {
-  questions,
-  answers,
-  currentIndex,
-  currentQuestion,
-  started,
-  completed,
-  results,
-  answeredCount,
-  formattedTime,
-  initializeExam,
-  answerQuestion,
-  goToQuestion,
-  nextQuestion,
-  prevQuestion,
-  submitExam,
-  passPercent,
-  resetExam,
-} = useExamEngine()
-
 async function handleSubmitExam() {
-  submitExam(false)
+  if (submittingExam.value) return
 
-  const selectedTimeLimitOption = timeLimitOptions.find(
-    (option) => option.value === selectedTimeLimit.value,
-  )
+  submittingExam.value = true
 
-  if (!user.value) return
+  try {
+    submitExam(false)
 
-  await saveLeaderboardEntry({
-    uid: user.value.uid,
-    name: user.value.displayName || "Anonymous",
-    companyName: user.value.companyName || "",
-    district: user.value.district || "",
-    score: results.value?.percent ?? results.percent,
-    questionCount: selectedQuestionCount.value,
-    timeLimit: selectedTimeLimit.value,
-    timeLimitLabel:
-      selectedTimeLimitOption?.label || `${selectedTimeLimit.value} Minutes`,
-    durationUsedSeconds: results.value?.durationUsedSeconds ?? null,
-  })
-  const updatedStats = await loadUserStats(user.value.uid)
+    const selectedTimeLimitOption = timeLimitOptions.find(
+      (option) => option.value === selectedTimeLimit.value,
+    )
 
-  user.value = {
-    ...user.value,
-    bestScore: updatedStats.bestScore,
-    attempts: updatedStats.attempts,
-    rank: updatedStats.rank,
+    if (!user.value) return
+
+    await saveLeaderboardEntry({
+      uid: user.value.uid,
+      name: user.value.displayName || "Anonymous",
+      companyName: user.value.companyName || "",
+      district: user.value.district || "",
+      score: results.value?.percent ?? results.percent ?? 0,
+      questionCount: selectedQuestionCount.value,
+      timeLimit: selectedTimeLimit.value,
+      timeLimitLabel:
+        selectedTimeLimitOption?.label || `${selectedTimeLimit.value} Minutes`,
+      durationUsedSeconds: results.value?.durationUsedSeconds ?? null,
+    })
+
+    const updatedStats = await loadUserStats(user.value.uid)
+
+    user.value = {
+      ...user.value,
+      bestScore: updatedStats.bestScore,
+      attempts: updatedStats.attempts,
+      rank: updatedStats.rank,
+    }
+
+    recentlySubmittedUid.value = user.value.uid
+    leaderboardQuestionCount.value = selectedQuestionCount.value
+    leaderboardTimeLimit.value = selectedTimeLimit.value
+  } catch (error) {
+    console.error("Submit exam error:", error)
+  } finally {
+    submittingExam.value = false
   }
-
-  recentlySubmittedUid.value = user.value.uid
-  leaderboardQuestionCount.value = selectedQuestionCount.value
-  leaderboardTimeLimit.value = selectedTimeLimit.value
 }
 
 function openAuthModal(mode) {
@@ -409,6 +464,7 @@ function openAuthModal(mode) {
 function closeAuthModal() {
   showAuthModal.value = false
   clearAuthMessages()
+  resetAuthPasswords()
 }
 
 async function handleLogin() {
@@ -436,11 +492,10 @@ async function handleLogin() {
 
     await userCredential.user.reload()
 
-    const usesPasswordProvider = userCredential.user.providerData.some(
-      (provider) => provider.providerId === "password",
-    )
-
-    if (usesPasswordProvider && !userCredential.user.emailVerified) {
+    if (
+      isPasswordProviderUser(userCredential.user) &&
+      !userCredential.user.emailVerified
+    ) {
       await signOut(auth)
       resetAuthPasswords()
       authError.value =
@@ -458,8 +513,7 @@ async function handleLogin() {
 }
 
 async function handleRegister() {
-  authError.value = ""
-  authLoading.value = false
+  clearAuthMessages()
 
   if (!authForm.displayName.trim()) {
     authError.value = "Display name is required."
@@ -487,6 +541,7 @@ async function handleRegister() {
   }
 
   authLoading.value = true
+  registeringUser.value = true
 
   try {
     const userCredential = await createUserWithEmailAndPassword(
@@ -499,8 +554,6 @@ async function handleRegister() {
       displayName: authForm.displayName.trim(),
     })
 
-    await sendEmailVerification(userCredential.user)
-
     await setDoc(doc(db, "users", userCredential.user.uid), {
       uid: userCredential.user.uid,
       displayName: authForm.displayName.trim(),
@@ -511,13 +564,19 @@ async function handleRegister() {
       createdAt: new Date(),
     })
 
+    await sendEmailVerification(userCredential.user)
+    await signOut(auth)
+
     authMode.value = "login"
-    authError.value =
+    authSuccess.value =
       "Account created! Check your email to verify before signing in."
+
+    resetAuthPasswords()
   } catch (error) {
     console.log("Firebase register error:", error.code, error.message)
     authError.value = getAuthErrorMessage(error)
   } finally {
+    registeringUser.value = false
     authLoading.value = false
   }
 }
@@ -543,8 +602,11 @@ async function handlePasswordReset() {
 }
 
 async function logout() {
-  await signOut(auth)
-  user.value = null
+  try {
+    await signOut(auth)
+  } finally {
+    user.value = null
+  }
 }
 
 function startSelectedExam() {
@@ -578,15 +640,17 @@ function goHome() {
   }, 4000)
 }
 
+function handleRetake() {
+  retakeExam()
+}
+
 function retakeExam() {
   if (!user.value) {
     openAuthModal("login")
     return
   }
 
-  if (typeof resetExam === "function") {
-    resetExam()
-  }
+  resetExam()
 
   initializeExam({
     questionCount: selectedQuestionCount.value,
@@ -678,6 +742,7 @@ function handleDecline() {
             <input
               v-model="authForm.email"
               type="email"
+              autocomplete="email"
               class="bg-white dark:bg-slate-800 px-4 py-3 border border-slate-300 focus:border-blue-500 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 w-full text-slate-900 dark:text-white placeholder:text-slate-400 transition"
               placeholder="Enter your email"
             />
@@ -689,12 +754,24 @@ function handleDecline() {
             >
               Password
             </label>
-            <input
-              v-model="authForm.password"
-              :type="showPassword ? 'text' : 'password'"
-              class="bg-white dark:bg-slate-800 px-4 py-3 border border-slate-300 focus:border-blue-500 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 w-full text-slate-900 dark:text-white placeholder:text-slate-400 transition"
-              placeholder="Enter your password"
-            />
+
+            <div class="relative">
+              <input
+                v-model="authForm.password"
+                :type="showPassword ? 'text' : 'password'"
+                autocomplete="current-password"
+                class="bg-white dark:bg-slate-800 px-4 py-3 pr-20 border border-slate-300 focus:border-blue-500 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 w-full text-slate-900 dark:text-white placeholder:text-slate-400 transition"
+                placeholder="Enter your password"
+              />
+
+              <button
+                type="button"
+                class="top-1/2 right-3 absolute font-semibold text-blue-700 hover:text-blue-900 dark:hover:text-blue-300 dark:text-blue-400 text-sm -translate-y-1/2"
+                @click="showPassword = !showPassword"
+              >
+                {{ showPassword ? "Hide" : "Show" }}
+              </button>
+            </div>
           </div>
 
           <button
@@ -739,6 +816,7 @@ function handleDecline() {
             <input
               v-model="authForm.displayName"
               type="text"
+              autocomplete="name"
               class="bg-white dark:bg-slate-800 px-4 py-3 border border-slate-300 focus:border-blue-500 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 w-full text-slate-900 dark:text-white placeholder:text-slate-400 transition"
               placeholder="Enter your display name"
             />
@@ -787,6 +865,7 @@ function handleDecline() {
             <input
               v-model="authForm.email"
               type="email"
+              autocomplete="email"
               class="bg-white dark:bg-slate-800 px-4 py-3 border border-slate-300 focus:border-blue-500 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 w-full text-slate-900 dark:text-white placeholder:text-slate-400 transition"
               placeholder="Enter your email"
             />
@@ -798,12 +877,24 @@ function handleDecline() {
             >
               Password
             </label>
-            <input
-              v-model="authForm.password"
-              :type="showPassword ? 'text' : 'password'"
-              class="bg-white dark:bg-slate-800 px-4 py-3 border border-slate-300 focus:border-blue-500 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 w-full text-slate-900 dark:text-white placeholder:text-slate-400 transition"
-              placeholder="Create a password"
-            />
+
+            <div class="relative">
+              <input
+                v-model="authForm.password"
+                :type="showPassword ? 'text' : 'password'"
+                autocomplete="new-password"
+                class="bg-white dark:bg-slate-800 px-4 py-3 pr-20 border border-slate-300 focus:border-blue-500 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 w-full text-slate-900 dark:text-white placeholder:text-slate-400 transition"
+                placeholder="Create a password"
+              />
+
+              <button
+                type="button"
+                class="top-1/2 right-3 absolute font-semibold text-blue-700 hover:text-blue-900 dark:hover:text-blue-300 dark:text-blue-400 text-sm -translate-y-1/2"
+                @click="showPassword = !showPassword"
+              >
+                {{ showPassword ? "Hide" : "Show" }}
+              </button>
+            </div>
           </div>
 
           <div>
@@ -812,12 +903,24 @@ function handleDecline() {
             >
               Confirm Password
             </label>
-            <input
-              v-model="authForm.confirmPassword"
-              :type="showPassword ? 'text' : 'password'"
-              class="bg-white dark:bg-slate-800 px-4 py-3 border border-slate-300 focus:border-blue-500 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 w-full text-slate-900 dark:text-white placeholder:text-slate-400 transition"
-              placeholder="Confirm your password"
-            />
+
+            <div class="relative">
+              <input
+                v-model="authForm.confirmPassword"
+                :type="showPassword ? 'text' : 'password'"
+                autocomplete="new-password"
+                class="bg-white dark:bg-slate-800 px-4 py-3 pr-20 border border-slate-300 focus:border-blue-500 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 w-full text-slate-900 dark:text-white placeholder:text-slate-400 transition"
+                placeholder="Confirm your password"
+              />
+
+              <button
+                type="button"
+                class="top-1/2 right-3 absolute font-semibold text-blue-700 hover:text-blue-900 dark:hover:text-blue-300 dark:text-blue-400 text-sm -translate-y-1/2"
+                @click="showPassword = !showPassword"
+              >
+                {{ showPassword ? "Hide" : "Show" }}
+              </button>
+            </div>
           </div>
 
           <button
@@ -850,6 +953,7 @@ function handleDecline() {
             <input
               v-model="authForm.email"
               type="email"
+              autocomplete="email"
               class="bg-white dark:bg-slate-800 px-4 py-3 border border-slate-300 focus:border-blue-500 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 w-full text-slate-900 dark:text-white placeholder:text-slate-400 transition"
               placeholder="Enter your account email"
             />
