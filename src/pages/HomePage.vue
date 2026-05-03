@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, watch, reactive, ref } from "vue"
 import DisclaimerModal from "@/components/DisclaimerModal.vue"
 import ExamHeader from "@/components/ExamHeader.vue"
+import FloatingCalculator from "@/components/FloatingCalculator.vue"
 import QuestionCard from "@/components/QuestionCard.vue"
 import ResultsSummary from "@/components/ResultsSummary.vue"
 import SidebarNavigator from "@/components/SidebarNavigator.vue"
@@ -56,6 +57,8 @@ const submittingExam = ref(false)
 
 let unsubscribeAuth = null
 let unsubscribeLeaderboard = null
+
+const showCalculator = ref(false)
 
 const questionCountOptions = [10, 25, 50, 100]
 
@@ -1477,6 +1480,26 @@ function handleDecline() {
           :total="questions.length"
           :answered="answeredCount"
           :formatted-time="formattedTime"
+        />
+
+        <div style="background: red; color: white; padding: 10px">
+          TEST BUTTON AREA
+        </div>
+
+        <div class="flex justify-end">
+          <button
+            type="button"
+            class="flex items-center gap-2 bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 px-5 py-3 border border-slate-300 dark:border-slate-700 rounded-2xl font-semibold text-slate-700 dark:text-slate-200 transition"
+            @click="showCalculator = true"
+          >
+            <span>🧮</span>
+            <span>Calculator</span>
+          </button>
+        </div>
+
+        <FloatingCalculator
+          v-if="showCalculator"
+          @close="showCalculator = false"
         />
 
         <div class="gap-4 md:gap-6 grid xl:grid-cols-[320px_minmax(0,1fr)]">
