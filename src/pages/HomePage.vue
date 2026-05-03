@@ -580,7 +580,10 @@ async function handleRegister() {
       createdAt: new Date(),
     })
 
-    await sendEmailVerification(userCredential.user)
+    await sendEmailVerification(userCredential.user, {
+      url: "https://category7.online/verify",
+      handleCodeInApp: true,
+    })
     await signOut(auth)
 
     authMode.value = "login"
