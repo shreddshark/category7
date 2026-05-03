@@ -115,14 +115,15 @@ function calculate() {
     <div
       class="flex justify-between items-center bg-slate-900 dark:bg-slate-800 px-4 py-3 cursor-move select-none"
       @mousedown="startDrag"
-      @touchstart.prevent="startDrag"
+      @touchstart="startDrag"
     >
       <p class="font-bold text-white text-sm">Calculator</p>
 
       <button
         type="button"
-        class="hover:bg-white/10 px-2 py-1 rounded-lg text-white"
+        class="z-[10000] hover:bg-white/10 px-3 py-2 rounded-lg text-white"
         @click.stop="emit('close')"
+        @touchstart.stop
       >
         ✕
       </button>
