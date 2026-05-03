@@ -26,8 +26,31 @@ function shuffle(array) {
   return copy
 }
 
+const recentlyUsedQuestionIds = new Set()
+
+function getRecentLimit(questionCount, poolSize) {
+  if (questionCount <= 10) return Math.min(60, poolSize - questionCount)
+  if (questionCount <= 25) return Math.min(100, poolSize - questionCount)
+  if (questionCount <= 50) return Math.min(125, poolSize - questionCount)
+
+  return Math.min(75, poolSize - questionCount)
+}
+
+function rememberUsedQuestions(selectedQuestions, recentLimit) {
+  selectedQuestions.forEach((question) => {
+    recentlyUsedQuestionIds.add(question.id)
+  })
+
+  while (recentlyUsedQuestionIds.size > recentLimit) {
+    const oldestId = recentlyUsedQuestionIds.values().next().value
+    recentlyUsedQuestionIds.delete(oldestId)
+  }
+}
+
 function getRandomExamQuestions(pool, questionCount) {
+  const recentLimit = getRecentLimit(questionCount, pool.length)
   const uniqueQuestions = []
+  const fallbackQuestions = []
   const usedIds = new Set()
   const usedQuestionText = new Set()
 
@@ -39,14 +62,32 @@ function getRandomExamQuestions(pool, questionCount) {
 
     usedIds.add(question.id)
     usedQuestionText.add(normalizedText)
-    uniqueQuestions.push(question)
+
+    if (recentlyUsedQuestionIds.has(question.id)) {
+      fallbackQuestions.push(question)
+    } else {
+      uniqueQuestions.push(question)
+    }
 
     if (uniqueQuestions.length === questionCount) {
       break
     }
   }
 
-  return shuffle(uniqueQuestions)
+  if (uniqueQuestions.length < questionCount) {
+    uniqueQuestions.push(
+      ...shuffle(fallbackQuestions).slice(
+        0,
+        questionCount - uniqueQuestions.length,
+      ),
+    )
+  }
+
+  const selectedQuestions = shuffle(uniqueQuestions).slice(0, questionCount)
+
+  rememberUsedQuestions(selectedQuestions, recentLimit)
+
+  return selectedQuestions
 }
 
 export function useExamEngine() {
