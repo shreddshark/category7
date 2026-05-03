@@ -14,53 +14,48 @@ function shuffle(array) {
   return copy
 }
 
-// 🔥 Recent + Adaptive tracking
+// 🔥 SAFE tracking
 const recentIds = new Set()
-const weakQuestionMap = new Map() // id -> times missed
+const weakQuestionMap = new Map()
 
 function getRecentLimit(questionCount, poolSize) {
-  return Math.min(poolSize - questionCount, 75)
+  // ✅ NEVER allow negative or zero
+  return Math.max(10, Math.min(poolSize - questionCount, 75))
 }
 
-// 🔥 ADAPTIVE RANDOM LOGIC
 function getAdaptiveQuestions(pool, questionCount) {
   const recentLimit = getRecentLimit(questionCount, pool.length)
 
-  // Step 1: Separate weak vs normal
-  const weakQuestions = []
-  const normalQuestions = []
+  // 🔥 Step 1: build pool without over-filtering
+  let workingPool = pool.filter((q) => !recentIds.has(q.id))
 
-  for (const q of pool) {
-    if (recentIds.has(q.id)) continue
-
-    if (weakQuestionMap.has(q.id)) {
-      weakQuestions.push(q)
-    } else {
-      normalQuestions.push(q)
-    }
+  if (workingPool.length < questionCount) {
+    workingPool = [...pool] // fallback safely
   }
 
-  // Step 2: Prioritize weak questions (up to 30%)
-  const weakTarget = Math.floor(questionCount * 0.3)
+  // 🔥 Step 2: adaptive weighting (light)
+  const weighted = workingPool.map((q) => {
+    const weakness = weakQuestionMap.get(q.id) || 0
+    return { ...q, weight: 1 + weakness }
+  })
 
-  const selectedWeak = shuffle(weakQuestions).slice(0, weakTarget)
-  const remainingCount = questionCount - selectedWeak.length
+  // 🔥 Step 3: shuffle weighted (light bias)
+  const shuffled = shuffle(weighted).sort((a, b) => b.weight - a.weight)
 
-  const selectedNormal = shuffle(
-    normalQuestions.length ? normalQuestions : pool,
-  ).slice(0, remainingCount)
+  const selected = shuffled.slice(0, questionCount)
 
-  const final = shuffle([...selectedWeak, ...selectedNormal])
+  // 🔥 Step 4: update recent safely
+  selected.forEach((q) => recentIds.add(q.id))
 
-  // Step 3: remember recent
-  final.forEach((q) => recentIds.add(q.id))
-
-  while (recentIds.size > recentLimit) {
-    const first = recentIds.values().next().value
-    recentIds.delete(first)
+  // ✅ SAFE TRIM (no infinite loop)
+  const idsArray = Array.from(recentIds)
+  if (idsArray.length > recentLimit) {
+    const trimmed = idsArray.slice(idsArray.length - recentLimit)
+    recentIds.clear()
+    trimmed.forEach((id) => recentIds.add(id))
   }
 
-  return final
+  return selected
 }
 
 export function useExamEngine() {
@@ -104,7 +99,7 @@ export function useExamEngine() {
     examDurationSeconds.value = timeLimitMinutes * 60
     timeRemaining.value = examDurationSeconds.value
 
-    // 🔥 adaptive selection
+    // 🔥 SAFE + FAST
     questions.value = getAdaptiveQuestions(fullPool, questionCount)
 
     answers.value = {}
@@ -149,10 +144,8 @@ export function useExamEngine() {
 
       if (isCorrect) {
         correct++
-        // 🔥 reward learning (remove from weak)
         weakQuestionMap.delete(question.id)
       } else {
-        // 🔥 track weak questions
         weakQuestionMap.set(
           question.id,
           (weakQuestionMap.get(question.id) || 0) + 1,
