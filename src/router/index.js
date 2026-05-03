@@ -3,9 +3,9 @@ import { createRouter, createWebHistory } from "vue-router"
 const routes = [
   {
     path: "/verify",
+    name: "VerifyEmail",
     component: () => import("@/pages/VerifyEmail.vue"),
   },
-
   {
     path: "/",
     name: "Home",

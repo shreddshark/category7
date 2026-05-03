@@ -587,12 +587,11 @@ async function handleRegister() {
       url: "https://category7.online/verify",
       handleCodeInApp: true,
     })
+
     await signOut(auth)
 
-    authMode.value = "login"
-    authSuccess.value =
-      "Account created! Check your email to verify before signing in."
-
+    authMode.value = "verify"
+    authSuccess.value = ""
     resetAuthPasswords()
   } catch (error) {
     console.log("Firebase register error:", error.code, error.message)
@@ -722,7 +721,9 @@ function handleDecline() {
                   ? "Sign In"
                   : authMode === "register"
                     ? "Create Account"
-                    : "Reset Password"
+                    : authMode === "verify"
+                      ? "Check Your Email"
+                      : "Reset Password"
               }}
             </h2>
           </div>
@@ -964,6 +965,43 @@ function handleDecline() {
             </button>
           </p>
         </form>
+
+        <div v-else-if="authMode === 'verify'" class="space-y-5 text-center">
+          <div
+            class="flex justify-center items-center bg-blue-100 dark:bg-blue-950 mx-auto rounded-full w-16 h-16 text-3xl"
+          >
+            📧
+          </div>
+
+          <div>
+            <h3 class="font-bold text-slate-900 dark:text-white text-xl">
+              Check Your Email
+            </h3>
+
+            <p
+              class="mt-3 text-slate-600 dark:text-slate-300 text-sm leading-6"
+            >
+              We sent a verification link to
+              <span class="font-semibold text-slate-900 dark:text-white">
+                {{ authForm.email }} </span
+              >. You must verify your email before signing in.
+            </p>
+
+            <p
+              class="mt-3 text-slate-500 dark:text-slate-400 text-xs leading-5"
+            >
+              If you do not see the email, check your spam or junk folder.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            class="bg-blue-600 hover:bg-blue-700 px-5 py-3 rounded-2xl w-full font-semibold text-white transition"
+            @click="authMode = 'login'"
+          >
+            Back to Sign In
+          </button>
+        </div>
 
         <form v-else class="space-y-4" @submit.prevent="handlePasswordReset">
           <div>
