@@ -1551,6 +1551,7 @@ function handleDecline() {
           <div class="space-y-4 md:space-y-6">
             <QuestionCard
               v-if="currentQuestion"
+              :key="currentQuestion.id"
               :question="currentQuestion"
               :number="currentIndex + 1"
               :selected-answer="answers[currentQuestion.id]"
@@ -1562,7 +1563,8 @@ function handleDecline() {
             >
               <button
                 type="button"
-                class="hover:bg-slate-100 dark:hover:bg-slate-800 px-5 py-3 border border-slate-300 dark:border-slate-700 rounded-2xl w-full sm:w-auto font-semibold text-slate-700 dark:text-slate-200 transition"
+                :disabled="currentIndex === 0"
+                class="hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 px-5 py-3 border border-slate-300 dark:border-slate-700 rounded-2xl w-full sm:w-auto font-semibold text-slate-700 dark:text-slate-200 transition disabled:cursor-not-allowed"
                 @click="prevQuestion"
               >
                 Previous

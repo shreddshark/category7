@@ -7,55 +7,54 @@ const PASSING_PERCENT = 70
 
 function shuffle(array) {
   const copy = [...array]
+
   for (let i = copy.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
     ;[copy[i], copy[j]] = [copy[j], copy[i]]
   }
+
   return copy
 }
 
-// 🔥 SAFE tracking
 const recentIds = new Set()
 const weakQuestionMap = new Map()
 
 function getRecentLimit(questionCount, poolSize) {
-  // ✅ NEVER allow negative or zero
   return Math.max(10, Math.min(poolSize - questionCount, 75))
 }
 
 function getAdaptiveQuestions(pool, questionCount) {
-  const recentLimit = getRecentLimit(questionCount, pool.length)
+  const safeQuestionCount = Math.min(
+    Number(questionCount) || EXAM_LENGTH,
+    pool.length,
+  )
+  const recentLimit = getRecentLimit(safeQuestionCount, pool.length)
 
-  // 🔥 Step 1: build pool without over-filtering
   let workingPool = pool.filter((q) => !recentIds.has(q.id))
 
-  if (workingPool.length < questionCount) {
-    workingPool = [...pool] // fallback safely
+  if (workingPool.length < safeQuestionCount) {
+    workingPool = [...pool]
   }
 
-  // 🔥 Step 2: adaptive weighting (light)
   const weighted = workingPool.map((q) => {
     const weakness = weakQuestionMap.get(q.id) || 0
     return { ...q, weight: 1 + weakness }
   })
 
-  // 🔥 Step 3: shuffle weighted (light bias)
   const shuffled = shuffle(weighted).sort((a, b) => b.weight - a.weight)
+  const selected = shuffled.slice(0, safeQuestionCount)
 
-  const selected = shuffled.slice(0, questionCount)
-
-  // 🔥 Step 4: update recent safely
   selected.forEach((q) => recentIds.add(q.id))
 
-  // ✅ SAFE TRIM (no infinite loop)
   const idsArray = Array.from(recentIds)
+
   if (idsArray.length > recentLimit) {
     const trimmed = idsArray.slice(idsArray.length - recentLimit)
     recentIds.clear()
     trimmed.forEach((id) => recentIds.add(id))
   }
 
-  return selected
+  return selected.map(({ weight, ...question }) => question)
 }
 
 export function useExamEngine() {
@@ -71,6 +70,25 @@ export function useExamEngine() {
 
   let timerId = null
 
+  const currentQuestion = computed(
+    () => questions.value[currentIndex.value] || null,
+  )
+
+  const answeredCount = computed(() => Object.keys(answers.value).length)
+
+  const formattedTime = computed(() => {
+    const hours = String(Math.floor(timeRemaining.value / 3600)).padStart(
+      2,
+      "0",
+    )
+    const minutes = String(
+      Math.floor((timeRemaining.value % 3600) / 60),
+    ).padStart(2, "0")
+    const seconds = String(timeRemaining.value % 60).padStart(2, "0")
+
+    return `${hours}:${minutes}:${seconds}`
+  })
+
   function startTimer() {
     stopTimer()
 
@@ -80,6 +98,7 @@ export function useExamEngine() {
         submitExam(true)
         return
       }
+
       timeRemaining.value -= 1
     }, 1000)
   }
@@ -99,9 +118,7 @@ export function useExamEngine() {
     examDurationSeconds.value = timeLimitMinutes * 60
     timeRemaining.value = examDurationSeconds.value
 
-    // 🔥 SAFE + FAST
     questions.value = getAdaptiveQuestions(fullPool, questionCount)
-
     answers.value = {}
     currentIndex.value = 0
     completed.value = false
@@ -115,6 +132,32 @@ export function useExamEngine() {
     answers.value = {
       ...answers.value,
       [questionId]: choice,
+    }
+  }
+
+  function goToQuestion(index) {
+    const targetIndex = Number(index)
+
+    if (
+      Number.isNaN(targetIndex) ||
+      targetIndex < 0 ||
+      targetIndex >= questions.value.length
+    ) {
+      return
+    }
+
+    currentIndex.value = targetIndex
+  }
+
+  function nextQuestion() {
+    if (currentIndex.value < questions.value.length - 1) {
+      currentIndex.value += 1
+    }
+  }
+
+  function prevQuestion() {
+    if (currentIndex.value > 0) {
+      currentIndex.value -= 1
     }
   }
 
@@ -140,10 +183,11 @@ export function useExamEngine() {
         }
       }
 
-      categoryStats[question.category].total++
+      categoryStats[question.category].total += 1
 
       if (isCorrect) {
-        correct++
+        correct += 1
+        categoryStats[question.category].correct += 1
         weakQuestionMap.delete(question.id)
       } else {
         weakQuestionMap.set(
@@ -153,8 +197,8 @@ export function useExamEngine() {
       }
 
       if (isUnanswered) {
-        unanswered++
-        categoryStats[question.category].unanswered++
+        unanswered += 1
+        categoryStats[question.category].unanswered += 1
       }
     })
 
@@ -198,25 +242,6 @@ export function useExamEngine() {
     examDurationSeconds.value = EXAM_DURATION_SECONDS
   }
 
-  const currentQuestion = computed(
-    () => questions.value[currentIndex.value] || null,
-  )
-
-  const answeredCount = computed(() => Object.keys(answers.value).length)
-
-  const formattedTime = computed(() => {
-    const hours = String(Math.floor(timeRemaining.value / 3600)).padStart(
-      2,
-      "0",
-    )
-    const minutes = String(
-      Math.floor((timeRemaining.value % 3600) / 60),
-    ).padStart(2, "0")
-    const seconds = String(timeRemaining.value % 60).padStart(2, "0")
-
-    return `${hours}:${minutes}:${seconds}`
-  })
-
   onBeforeUnmount(() => {
     stopTimer()
   })
@@ -235,6 +260,9 @@ export function useExamEngine() {
     formattedTime,
     initializeExam,
     answerQuestion,
+    goToQuestion,
+    nextQuestion,
+    prevQuestion,
     submitExam,
     resetExam,
     passPercent: PASSING_PERCENT,
