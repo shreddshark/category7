@@ -708,7 +708,7 @@ function handleDecline() {
       <div
         class="bg-white dark:bg-slate-900 shadow-2xl p-5 sm:p-6 md:p-8 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-md max-h-[92vh] overflow-y-auto transition-colors"
       >
-        <div class="flex justify-between items-center gap-4 mb-6">
+        <div class="flex justify-between items-start gap-4 mb-6">
           <div>
             <p
               class="font-semibold text-blue-600 dark:text-blue-400 text-xs sm:text-sm uppercase tracking-[0.2em]"
@@ -731,6 +731,7 @@ function handleDecline() {
           <button
             type="button"
             class="hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-xl text-slate-500 dark:text-slate-300 transition shrink-0"
+            aria-label="Close account modal"
             @click="closeAuthModal"
           >
             ✕
@@ -777,7 +778,6 @@ function handleDecline() {
             >
               Password
             </label>
-
             <div class="relative">
               <input
                 v-model="authForm.password"
@@ -786,7 +786,6 @@ function handleDecline() {
                 class="bg-white dark:bg-slate-800 px-4 py-3 pr-20 border border-slate-300 focus:border-blue-500 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 w-full text-slate-900 dark:text-white placeholder:text-slate-400 transition"
                 placeholder="Enter your password"
               />
-
               <button
                 type="button"
                 class="top-1/2 right-3 absolute font-semibold text-blue-700 hover:text-blue-900 dark:hover:text-blue-300 dark:text-blue-400 text-sm -translate-y-1/2"
@@ -850,9 +849,9 @@ function handleDecline() {
               class="block mb-2 font-semibold text-slate-700 dark:text-slate-200 text-sm"
             >
               Company Name
-              <span class="font-normal text-slate-400 dark:text-slate-500">
-                (optional)
-              </span>
+              <span class="font-normal text-slate-400 dark:text-slate-500"
+                >(optional)</span
+              >
             </label>
             <input
               v-model="authForm.companyName"
@@ -867,9 +866,9 @@ function handleDecline() {
               class="block mb-2 font-semibold text-slate-700 dark:text-slate-200 text-sm"
             >
               District
-              <span class="font-normal text-slate-400 dark:text-slate-500">
-                (optional)
-              </span>
+              <span class="font-normal text-slate-400 dark:text-slate-500"
+                >(optional)</span
+              >
             </label>
             <input
               v-model="authForm.district"
@@ -900,7 +899,6 @@ function handleDecline() {
             >
               Password
             </label>
-
             <div class="relative">
               <input
                 v-model="authForm.password"
@@ -909,7 +907,6 @@ function handleDecline() {
                 class="bg-white dark:bg-slate-800 px-4 py-3 pr-20 border border-slate-300 focus:border-blue-500 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 w-full text-slate-900 dark:text-white placeholder:text-slate-400 transition"
                 placeholder="Create a password"
               />
-
               <button
                 type="button"
                 class="top-1/2 right-3 absolute font-semibold text-blue-700 hover:text-blue-900 dark:hover:text-blue-300 dark:text-blue-400 text-sm -translate-y-1/2"
@@ -926,24 +923,13 @@ function handleDecline() {
             >
               Confirm Password
             </label>
-
-            <div class="relative">
-              <input
-                v-model="authForm.confirmPassword"
-                :type="showPassword ? 'text' : 'password'"
-                autocomplete="new-password"
-                class="bg-white dark:bg-slate-800 px-4 py-3 pr-20 border border-slate-300 focus:border-blue-500 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 w-full text-slate-900 dark:text-white placeholder:text-slate-400 transition"
-                placeholder="Confirm your password"
-              />
-
-              <button
-                type="button"
-                class="top-1/2 right-3 absolute font-semibold text-blue-700 hover:text-blue-900 dark:hover:text-blue-300 dark:text-blue-400 text-sm -translate-y-1/2"
-                @click="showPassword = !showPassword"
-              >
-                {{ showPassword ? "Hide" : "Show" }}
-              </button>
-            </div>
+            <input
+              v-model="authForm.confirmPassword"
+              :type="showPassword ? 'text' : 'password'"
+              autocomplete="new-password"
+              class="bg-white dark:bg-slate-800 px-4 py-3 border border-slate-300 focus:border-blue-500 dark:border-slate-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 w-full text-slate-900 dark:text-white placeholder:text-slate-400 transition"
+              placeholder="Confirm your password"
+            />
           </div>
 
           <button
@@ -972,28 +958,25 @@ function handleDecline() {
           >
             📧
           </div>
-
           <div>
             <h3 class="font-bold text-slate-900 dark:text-white text-xl">
               Check Your Email
             </h3>
-
             <p
               class="mt-3 text-slate-600 dark:text-slate-300 text-sm leading-6"
             >
               We sent a verification link to
-              <span class="font-semibold text-slate-900 dark:text-white">
-                {{ authForm.email }} </span
+              <span class="font-semibold text-slate-900 dark:text-white">{{
+                authForm.email
+              }}</span
               >. You must verify your email before signing in.
             </p>
-
             <p
               class="mt-3 text-slate-500 dark:text-slate-400 text-xs leading-5"
             >
               If you do not see the email, check your spam or junk folder.
             </p>
           </div>
-
           <button
             type="button"
             class="bg-blue-600 hover:bg-blue-700 px-5 py-3 rounded-2xl w-full font-semibold text-white transition"
@@ -1039,7 +1022,7 @@ function handleDecline() {
     </div>
 
     <main class="mx-auto px-3 sm:px-4 md:px-6 py-4 md:py-8 max-w-7xl">
-      <div class="flex flex-col gap-4 mb-5 md:mb-6">
+      <header class="flex flex-col gap-4 mb-5 md:mb-6">
         <div class="flex justify-between items-start gap-3">
           <div class="min-w-0">
             <p
@@ -1156,28 +1139,11 @@ function handleDecline() {
             Sign Out
           </button>
         </div>
-
-        <div v-else class="gap-3 grid grid-cols-2">
-          <button
-            type="button"
-            class="hover:bg-white dark:hover:bg-slate-800 px-4 py-3 border border-slate-300 dark:border-slate-700 rounded-2xl font-semibold text-slate-700 dark:text-slate-200 text-sm transition"
-            @click="openAuthModal('login')"
-          >
-            Sign In
-          </button>
-          <button
-            type="button"
-            class="bg-blue-600 hover:bg-blue-700 px-4 py-3 rounded-2xl font-semibold text-white text-sm transition"
-            @click="openAuthModal('register')"
-          >
-            Create Account
-          </button>
-        </div>
-      </div>
+      </header>
 
       <section
         v-if="!agreed"
-        class="bg-white dark:bg-slate-900 shadow-soft p-5 sm:p-6 md:p-8 border border-slate-200 dark:border-slate-800 rounded-3xl text-center"
+        class="bg-white dark:bg-slate-900 shadow-soft p-6 sm:p-8 md:p-10 border border-slate-200 dark:border-slate-800 rounded-3xl text-center"
       >
         <p
           class="font-semibold text-blue-600 dark:text-blue-400 text-xs sm:text-sm uppercase tracking-[0.2em]"
@@ -1185,14 +1151,15 @@ function handleDecline() {
           Practice Exam
         </p>
         <h2
-          class="mt-3 font-bold text-slate-900 dark:text-white text-2xl md:text-4xl"
+          class="mt-3 font-bold text-slate-900 dark:text-white text-3xl md:text-5xl leading-tight"
         >
           TN Category 7 Sample Test
         </h2>
         <p
           class="mx-auto mt-4 max-w-2xl text-slate-600 dark:text-slate-300 text-sm sm:text-base leading-7"
         >
-          Read and accept the disclaimer to begin your timed sample exam.
+          Read and accept the disclaimer once before accessing the timed
+          practice exam.
         </p>
         <button
           type="button"
@@ -1203,123 +1170,180 @@ function handleDecline() {
         </button>
       </section>
 
-      <section
-        v-else-if="!started"
-        class="gap-4 md:gap-6 grid xl:grid-cols-[minmax(0,1fr)_360px]"
-      >
+      <section v-else-if="!started" class="space-y-6">
         <div
-          class="bg-white dark:bg-slate-900 shadow-soft p-5 sm:p-6 md:p-8 border border-slate-200 dark:border-slate-800 rounded-3xl"
+          v-if="!user"
+          class="bg-white dark:bg-slate-900 shadow-soft p-6 sm:p-8 md:p-12 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden"
         >
-          <p
-            class="font-semibold text-blue-600 dark:text-blue-400 text-xs sm:text-sm uppercase tracking-[0.2em]"
-          >
-            Ready to Begin
-          </p>
-          <h2
-            class="mt-3 font-bold text-slate-900 dark:text-white text-2xl md:text-4xl leading-tight"
-          >
-            Start Your Practice Exam
-          </h2>
-
-          <div class="gap-3 sm:gap-4 grid sm:grid-cols-2 md:grid-cols-3 mt-5">
-            <div class="bg-slate-100 dark:bg-slate-800 p-4 rounded-2xl">
-              <p
-                class="font-semibold text-slate-700 dark:text-slate-200 text-sm"
-              >
-                Question Pool
-              </p>
-              <p class="mt-2 font-bold text-slate-900 dark:text-white text-2xl">
-                208
-              </p>
-            </div>
-
-            <div class="bg-slate-100 dark:bg-slate-800 p-4 rounded-2xl">
-              <p
-                class="font-semibold text-slate-700 dark:text-slate-200 text-sm"
-              >
-                Questions Per Exam
-              </p>
-              <select
-                v-model="selectedQuestionCount"
-                class="bg-white dark:bg-slate-900 mt-2 px-3 py-3 border border-slate-300 focus:border-blue-500 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 w-full font-bold text-slate-900 dark:text-white text-base transition"
-              >
-                <option
-                  v-for="option in questionCountOptions"
-                  :key="option"
-                  :value="option"
-                >
-                  {{ option }}
-                </option>
-              </select>
-            </div>
-
-            <div class="bg-slate-100 dark:bg-slate-800 p-4 rounded-2xl">
-              <p
-                class="font-semibold text-slate-700 dark:text-slate-200 text-sm"
-              >
-                Time Limit
-              </p>
-              <select
-                v-model="selectedTimeLimit"
-                class="bg-white dark:bg-slate-900 mt-2 px-3 py-3 border border-slate-300 focus:border-blue-500 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 w-full font-bold text-slate-900 dark:text-white text-base transition"
-              >
-                <option
-                  v-for="option in timeLimitOptions"
-                  :key="option.value"
-                  :value="option.value"
-                >
-                  {{ option.label }}
-                </option>
-              </select>
-            </div>
-          </div>
-
-          <div
-            class="bg-amber-50 dark:bg-amber-950/30 mt-6 p-4 border border-amber-200 dark:border-amber-900 rounded-2xl text-amber-900 dark:text-amber-200 text-sm leading-6"
-          >
-            The exam will automatically submit when the timer reaches zero. Any
-            unanswered questions will count against the final score.
-          </div>
-
-          <div
-            v-if="!user"
-            class="bg-slate-50 dark:bg-slate-800/70 mt-6 p-4 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-700 dark:text-slate-300 text-sm leading-6"
-          >
-            You must sign in or create an account before taking the test. This
-            lets us save your scores, protect leaderboard integrity, and support
-            password reset.
-          </div>
-
-          <div class="gap-3 grid sm:grid-cols-2 mt-6">
-            <button
-              type="button"
-              class="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-2xl w-full font-semibold text-white text-center transition"
-              @click="startSelectedExam"
+          <div class="mx-auto max-w-3xl text-center">
+            <p
+              class="font-semibold text-blue-600 dark:text-blue-400 text-xs sm:text-sm uppercase tracking-[0.2em]"
             >
-              Start Sample Test
-            </button>
-
-            <button
-              v-if="!user"
-              type="button"
-              class="hover:bg-slate-100 dark:hover:bg-slate-800 px-6 py-3 border border-slate-300 dark:border-slate-700 rounded-2xl w-full font-semibold text-slate-700 dark:text-slate-200 text-center transition"
-              @click="openAuthModal('login')"
+              Practice Smarter
+            </p>
+            <h2
+              class="mt-3 font-bold text-slate-900 dark:text-white text-3xl md:text-5xl leading-tight"
             >
-              Sign In to Save Scores
-            </button>
+              Prepare for your TN Category 7 exam without the clutter.
+            </h2>
+            <p
+              class="mx-auto mt-4 max-w-2xl text-slate-600 dark:text-slate-300 text-sm sm:text-base leading-7"
+            >
+              Take a realistic timed practice test, save your score, and compare
+              your progress on the leaderboard after signing in.
+            </p>
+
+            <div class="sm:flex sm:justify-center gap-3 grid mt-7">
+              <button
+                type="button"
+                class="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-2xl w-full sm:w-auto font-semibold text-white transition"
+                @click="openAuthModal('register')"
+              >
+                Create Account
+              </button>
+
+              <button
+                type="button"
+                class="hover:bg-slate-100 dark:hover:bg-slate-800 px-6 py-3 border border-slate-300 dark:border-slate-700 rounded-2xl w-full sm:w-auto font-semibold text-slate-700 dark:text-slate-200 transition"
+                @click="openAuthModal('login')"
+              >
+                Sign In
+              </button>
+            </div>
+          </div>
+
+          <div class="gap-3 grid sm:grid-cols-2 mt-8">
+            <div
+              class="bg-slate-50 dark:bg-slate-800/70 p-4 border border-slate-200 dark:border-slate-700 rounded-2xl text-center"
+            >
+              <p class="font-bold text-slate-900 dark:text-white text-2xl">
+                10 - 100 Questions
+              </p>
+              <p
+                class="mt-1 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wide"
+              >
+                Exam Lengths
+              </p>
+            </div>
+            <div
+              class="bg-slate-50 dark:bg-slate-800/70 p-4 border border-slate-200 dark:border-slate-700 rounded-2xl text-center"
+            >
+              <p class="font-bold text-slate-900 dark:text-white text-2xl">
+                70%
+              </p>
+              <p
+                class="mt-1 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wide"
+              >
+                Passing Goal
+              </p>
+            </div>
           </div>
         </div>
 
-        <aside class="space-y-4 md:space-y-6">
+        <div
+          v-else
+          class="gap-4 md:gap-6 grid xl:grid-cols-[minmax(0,1fr)_360px]"
+        >
           <div
-            class="bg-white dark:bg-slate-900 shadow-soft p-5 sm:p-6 border border-slate-200 dark:border-slate-800 rounded-3xl"
+            class="bg-white dark:bg-slate-900 shadow-soft p-5 sm:p-6 md:p-8 border border-slate-200 dark:border-slate-800 rounded-3xl"
           >
             <p
               class="font-semibold text-blue-600 dark:text-blue-400 text-xs sm:text-sm uppercase tracking-[0.2em]"
             >
-              Your Stats
+              Ready to Begin
             </p>
-            <template v-if="user">
+            <h2
+              class="mt-3 font-bold text-slate-900 dark:text-white text-2xl md:text-4xl leading-tight"
+            >
+              Start Your Practice Exam
+            </h2>
+            <p
+              class="mt-3 max-w-2xl text-slate-600 dark:text-slate-300 text-sm leading-6"
+            >
+              Pick your exam length and time limit. Your score will save to your
+              profile after submission.
+            </p>
+
+            <div class="gap-3 sm:gap-4 grid sm:grid-cols-2 md:grid-cols-3 mt-5">
+              <div class="bg-slate-100 dark:bg-slate-800 p-4 rounded-2xl">
+                <p
+                  class="font-semibold text-slate-700 dark:text-slate-200 text-sm"
+                >
+                  Question Pool
+                </p>
+                <p
+                  class="mt-2 font-bold text-slate-900 dark:text-white text-2xl"
+                >
+                  208
+                </p>
+              </div>
+
+              <div class="bg-slate-100 dark:bg-slate-800 p-4 rounded-2xl">
+                <p
+                  class="font-semibold text-slate-700 dark:text-slate-200 text-sm"
+                >
+                  Questions Per Exam
+                </p>
+                <select
+                  v-model="selectedQuestionCount"
+                  class="bg-white dark:bg-slate-900 mt-2 px-3 py-3 border border-slate-300 focus:border-blue-500 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 w-full font-bold text-slate-900 dark:text-white text-base transition"
+                >
+                  <option
+                    v-for="option in questionCountOptions"
+                    :key="option"
+                    :value="option"
+                  >
+                    {{ option }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="bg-slate-100 dark:bg-slate-800 p-4 rounded-2xl">
+                <p
+                  class="font-semibold text-slate-700 dark:text-slate-200 text-sm"
+                >
+                  Time Limit
+                </p>
+                <select
+                  v-model="selectedTimeLimit"
+                  class="bg-white dark:bg-slate-900 mt-2 px-3 py-3 border border-slate-300 focus:border-blue-500 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900 w-full font-bold text-slate-900 dark:text-white text-base transition"
+                >
+                  <option
+                    v-for="option in timeLimitOptions"
+                    :key="option.value"
+                    :value="option.value"
+                  >
+                    {{ option.label }}
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <div
+              class="bg-amber-50 dark:bg-amber-950/30 mt-6 p-4 border border-amber-200 dark:border-amber-900 rounded-2xl text-amber-900 dark:text-amber-200 text-sm leading-6"
+            >
+              The exam will automatically submit when the timer reaches zero.
+              Any unanswered questions count against the final score.
+            </div>
+
+            <button
+              type="button"
+              class="bg-blue-600 hover:bg-blue-700 mt-6 px-6 py-3 rounded-2xl w-full sm:w-auto font-semibold text-white text-center transition"
+              @click="startSelectedExam"
+            >
+              Start Sample Test
+            </button>
+          </div>
+
+          <aside class="space-y-4 md:space-y-6">
+            <div
+              class="bg-white dark:bg-slate-900 shadow-soft p-5 sm:p-6 border border-slate-200 dark:border-slate-800 rounded-3xl"
+            >
+              <p
+                class="font-semibold text-blue-600 dark:text-blue-400 text-xs sm:text-sm uppercase tracking-[0.2em]"
+              >
+                Your Stats
+              </p>
               <h3
                 class="mt-2 font-bold text-slate-900 dark:text-white text-2xl"
               >
@@ -1351,156 +1375,117 @@ function handleDecline() {
                   </p>
                 </div>
               </div>
-            </template>
-            <template v-else>
+            </div>
+
+            <div
+              ref="leaderboardSectionRef"
+              class="bg-white dark:bg-slate-900 shadow-soft p-5 sm:p-6 border border-slate-200 dark:border-slate-800 rounded-3xl scroll-mt-6"
+            >
               <p
-                class="mt-3 text-slate-600 dark:text-slate-300 text-sm leading-6"
+                class="font-semibold text-blue-600 dark:text-blue-400 text-xs sm:text-sm uppercase tracking-[0.2em]"
               >
-                Create an account to save your progress, track your best score,
-                and appear on the leaderboard.
+                Leaderboard
               </p>
+              <h3 class="mt-1 font-bold text-slate-900 dark:text-white text-xl">
+                Top Scores
+              </h3>
+
+              <div class="gap-2 grid grid-cols-2 mt-4">
+                <select
+                  v-model="leaderboardQuestionCount"
+                  class="bg-slate-50 dark:bg-slate-800 px-3 py-3 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm"
+                >
+                  <option
+                    v-for="option in questionCountOptions"
+                    :key="option"
+                    :value="option"
+                  >
+                    {{ option }} Qs
+                  </option>
+                </select>
+
+                <select
+                  v-model="leaderboardTimeLimit"
+                  class="bg-slate-50 dark:bg-slate-800 px-3 py-3 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm"
+                >
+                  <option
+                    v-for="option in timeLimitOptions"
+                    :key="option.value"
+                    :value="option.value"
+                  >
+                    {{ option.label }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="space-y-3 mt-5">
+                <template v-if="filteredLeaderboard.length">
+                  <div
+                    v-for="entry in filteredLeaderboard.slice(0, 3)"
+                    :key="entry.id"
+                    class="flex justify-between items-center gap-3 px-4 py-3 border rounded-2xl transition-all duration-500"
+                    :class="
+                      entry.uid === recentlySubmittedUid
+                        ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-300 dark:border-blue-800 ring-2 ring-blue-100 dark:ring-blue-900'
+                        : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700'
+                    "
+                  >
+                    <div class="min-w-0">
+                      <p
+                        class="font-semibold text-slate-900 dark:text-white text-sm truncate"
+                      >
+                        #{{ entry.rank }} {{ entry.name }}
+                      </p>
+                      <p class="text-slate-500 dark:text-slate-400 text-xs">
+                        {{ entry.questionCount }} questions •
+                        {{ entry.timeLimitLabel }}
+                      </p>
+                      <p
+                        class="mt-1 font-medium text-blue-700 dark:text-blue-400 text-xs"
+                      >
+                        Finished in
+                        {{ formatDuration(entry.durationUsedSeconds) }}
+                      </p>
+                    </div>
+
+                    <div class="text-right shrink-0">
+                      <p
+                        class="font-bold text-slate-900 dark:text-white text-base"
+                      >
+                        {{ entry.score }}%
+                      </p>
+                      <p class="text-slate-500 dark:text-slate-400 text-xs">
+                        {{ entry.date || "Today" }}
+                      </p>
+                    </div>
+                  </div>
+                </template>
+
+                <div
+                  v-else
+                  class="bg-slate-50 dark:bg-slate-800 px-4 py-5 border border-slate-300 dark:border-slate-700 border-dashed rounded-2xl text-center"
+                >
+                  <p
+                    class="font-semibold text-slate-800 dark:text-slate-100 text-sm"
+                  >
+                    No scores yet
+                  </p>
+                  <p class="mt-1 text-slate-500 dark:text-slate-400 text-xs">
+                    Submit an exam for this setup to appear here.
+                  </p>
+                </div>
+              </div>
+
               <button
                 type="button"
-                class="bg-blue-600 hover:bg-blue-700 mt-4 px-5 py-3 rounded-2xl w-full font-semibold text-white transition"
-                @click="openAuthModal('register')"
+                class="hover:bg-slate-100 dark:hover:bg-slate-800 mt-4 px-4 py-3 border border-slate-300 dark:border-slate-700 rounded-2xl w-full font-semibold text-slate-700 dark:text-slate-200 transition"
+                @click="$router.push('/leaderboard')"
               >
-                Join the Leaderboard
+                View Full Leaderboard
               </button>
-            </template>
-          </div>
-
-          <div
-            ref="leaderboardSectionRef"
-            class="bg-white dark:bg-slate-900 shadow-soft p-5 sm:p-6 border border-slate-200 dark:border-slate-800 rounded-3xl scroll-mt-6"
-          >
-            <div class="flex justify-between items-center gap-3">
-              <div>
-                <p
-                  class="font-semibold text-blue-600 dark:text-blue-400 text-xs sm:text-sm uppercase tracking-[0.2em]"
-                >
-                  Leaderboard
-                </p>
-                <h3
-                  class="mt-1 font-bold text-slate-900 dark:text-white text-xl"
-                >
-                  {{ showFullLeaderboard ? "Full Leaderboard" : "Top Scores" }}
-                </h3>
-              </div>
             </div>
-
-            <div class="gap-2 grid grid-cols-2 mt-4">
-              <select
-                v-model="leaderboardQuestionCount"
-                class="bg-slate-50 dark:bg-slate-800 px-3 py-3 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm"
-              >
-                <option
-                  v-for="option in questionCountOptions"
-                  :key="option"
-                  :value="option"
-                >
-                  {{ option }} Qs
-                </option>
-              </select>
-
-              <select
-                v-model="leaderboardTimeLimit"
-                class="bg-slate-50 dark:bg-slate-800 px-3 py-3 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-sm"
-              >
-                <option
-                  v-for="option in timeLimitOptions"
-                  :key="option.value"
-                  :value="option.value"
-                >
-                  {{ option.label }}
-                </option>
-              </select>
-            </div>
-
-            <div class="space-y-3 mt-5">
-              <template v-if="filteredLeaderboard.length">
-                <div
-                  v-for="entry in filteredLeaderboard"
-                  :key="entry.id"
-                  class="flex justify-between items-center gap-3 px-4 py-3 border rounded-2xl transition-all duration-500"
-                  :class="
-                    entry.uid === recentlySubmittedUid
-                      ? 'bg-blue-50 dark:bg-blue-950/40 border-blue-300 dark:border-blue-800 ring-2 ring-blue-100 dark:ring-blue-900'
-                      : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700'
-                  "
-                >
-                  <div class="min-w-0">
-                    <p
-                      class="font-semibold text-slate-900 dark:text-white text-sm truncate"
-                    >
-                      #{{ entry.rank }} {{ entry.name }}
-                    </p>
-
-                    <p class="text-slate-500 dark:text-slate-400 text-xs">
-                      {{ entry.questionCount }} questions •
-                      {{ entry.timeLimitLabel }}
-                    </p>
-
-                    <p
-                      v-if="entry.companyName || entry.district"
-                      class="mt-1 text-slate-500 dark:text-slate-400 text-xs"
-                    >
-                      <span v-if="entry.companyName">
-                        {{ entry.companyName }}
-                      </span>
-                      <span v-if="entry.companyName && entry.district">
-                        •
-                      </span>
-                      <span v-if="entry.district">
-                        District {{ entry.district }}
-                      </span>
-                    </p>
-
-                    <p
-                      class="mt-1 font-medium text-blue-700 dark:text-blue-400 text-xs"
-                    >
-                      Finished in
-                      {{ formatDuration(entry.durationUsedSeconds) }}
-                    </p>
-                  </div>
-
-                  <div class="text-right shrink-0">
-                    <p
-                      class="font-bold text-slate-900 dark:text-white text-base"
-                    >
-                      {{ entry.score }}%
-                    </p>
-                    <p class="text-slate-500 dark:text-slate-400 text-xs">
-                      {{ entry.date || "Today" }}
-                    </p>
-                  </div>
-                </div>
-              </template>
-
-              <div
-                v-else
-                class="bg-slate-50 dark:bg-slate-800 px-4 py-5 border border-slate-300 dark:border-slate-700 border-dashed rounded-2xl text-center"
-              >
-                <p
-                  class="font-semibold text-slate-800 dark:text-slate-100 text-sm"
-                >
-                  No scores yet
-                </p>
-                <p class="mt-1 text-slate-500 dark:text-slate-400 text-xs">
-                  Submit an exam for this question count and time limit to
-                  appear here.
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              class="hover:bg-slate-100 dark:hover:bg-slate-800 mt-4 px-4 py-3 border border-slate-300 dark:border-slate-700 rounded-2xl w-full font-semibold text-slate-700 dark:text-slate-200 transition"
-              @click="$router.push('/leaderboard')"
-            >
-              View Full Leaderboard
-            </button>
-          </div>
-        </aside>
+          </aside>
+        </div>
       </section>
 
       <section v-else-if="completed">
