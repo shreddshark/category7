@@ -1,17 +1,14 @@
 <script setup>
 import { onMounted, ref } from "vue"
-import { useRouter } from "vue-router"
 import { applyActionCode } from "firebase/auth"
 import { auth } from "@/firebase"
-
-const router = useRouter()
 
 const message = ref("Verifying your email...")
 const verified = ref(false)
 const error = ref(false)
 
 function goToSignIn() {
-  router.push("/")
+  window.location.href = "https://category7.online/?auth=login"
 }
 
 onMounted(async () => {
