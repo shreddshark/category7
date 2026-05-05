@@ -584,8 +584,8 @@ async function handleRegister() {
     })
 
     await sendEmailVerification(userCredential.user, {
-      url: "https://category7.online/verify",
-      handleCodeInApp: true,
+      url: "https://category7.online/",
+      handleCodeInApp: false,
     })
 
     await signOut(auth)
