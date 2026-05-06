@@ -20,7 +20,10 @@ const recentIds = new Set()
 const weakQuestionMap = new Map()
 
 function getRecentLimit(questionCount, poolSize) {
-  return Math.max(10, Math.min(poolSize - questionCount, 75))
+  return Math.max(
+    questionCount * 2,
+    Math.min(poolSize - Math.floor(questionCount / 2), 150),
+  )
 }
 
 function getAdaptiveQuestions(pool, questionCount) {
@@ -28,33 +31,59 @@ function getAdaptiveQuestions(pool, questionCount) {
     Number(questionCount) || EXAM_LENGTH,
     pool.length,
   )
+
   const recentLimit = getRecentLimit(safeQuestionCount, pool.length)
 
-  let workingPool = pool.filter((q) => !recentIds.has(q.id))
+  // Prefer questions NOT recently used
+  let availablePool = pool.filter((q) => !recentIds.has(q.id))
 
-  if (workingPool.length < safeQuestionCount) {
-    workingPool = [...pool]
+  // If we don't have enough questions left,
+  // only refill PART of the pool instead of all questions
+  if (availablePool.length < safeQuestionCount) {
+    const recentArray = Array.from(recentIds)
+
+    const recycledQuestions = shuffle(
+      pool.filter((q) => recentArray.includes(q.id)),
+    ).slice(0, safeQuestionCount - availablePool.length)
+
+    availablePool = [...availablePool, ...recycledQuestions]
   }
 
-  const weighted = workingPool.map((q) => {
+  // Shuffle heavily BEFORE selection
+  const randomized = shuffle([...availablePool])
+
+  // Slight weighting instead of aggressive sorting
+  const scored = randomized.map((q) => {
     const weakness = weakQuestionMap.get(q.id) || 0
-    return { ...q, weight: 1 + weakness }
+
+    return {
+      question: q,
+      score: Math.random() * 100 + weakness * 5,
+    }
   })
 
-  const shuffled = shuffle(weighted).sort((a, b) => b.weight - a.weight)
-  const selected = shuffled.slice(0, safeQuestionCount)
+  // Randomized weighted selection
+  scored.sort((a, b) => b.score - a.score)
 
+  const selected = scored
+    .slice(0, safeQuestionCount)
+    .map((item) => item.question)
+
+  // Track recently used questions
   selected.forEach((q) => recentIds.add(q.id))
 
+  // Trim recent history
   const idsArray = Array.from(recentIds)
 
   if (idsArray.length > recentLimit) {
     const trimmed = idsArray.slice(idsArray.length - recentLimit)
+
     recentIds.clear()
+
     trimmed.forEach((id) => recentIds.add(id))
   }
 
-  return selected.map(({ weight, ...question }) => question)
+  return shuffle(selected)
 }
 
 export function useExamEngine() {
