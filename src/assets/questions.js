@@ -17,6 +17,7 @@ const makeQuestion = (
   correctAnswer,
   explanation,
   difficulty = "medium",
+  required = false,
 ) => ({
   id,
   category,
@@ -25,7 +26,9 @@ const makeQuestion = (
   correctAnswer,
   explanation,
   difficulty,
+  required,
 })
+
 export const questionPool = [
   makeQuestion(
     1,
@@ -2607,5 +2610,15 @@ export const questionPool = [
     "Follow label disposal or rinsing directions",
     "Container disposal must follow label and regulatory directions.",
     "easy",
+  ),
+  makeQuestion(
+    209,
+    "labelsAndSafety",
+    "What telephone number should be called immediately for pesticide poisoning emergencies in the United States?",
+    ["1-800-222-1222", "911 only", "1-800-555-1212", "1-888-212-2222"],
+    "1-800-222-1222",
+    "The Poison Control Center can be reached nationwide at 1-800-222-1222 for poisoning emergencies and treatment guidance.",
+    "easy",
+    true,
   ),
 ]
