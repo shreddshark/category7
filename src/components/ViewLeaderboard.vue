@@ -25,44 +25,101 @@ const filteredEntries = computed(() => {
 
   if (selectedQuestionCount.value !== null) {
     items = items.filter(
-      (entry) => entry.questionCount === selectedQuestionCount.value,
+      (entry) =>
+        Number(entry.questionCount) === Number(selectedQuestionCount.value),
     )
   }
 
   if (selectedTimeLimit.value !== null) {
-    items = items.filter((entry) => entry.timeLimit === selectedTimeLimit.value)
+    items = items.filter(
+      (entry) => Number(entry.timeLimit) === Number(selectedTimeLimit.value),
+    )
   }
 
   return items
     .sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score
+      const aDate = getEntryDate(a)
+      const bDate = getEntryDate(b)
 
-      const aDuration = a.durationUsedSeconds ?? Number.MAX_SAFE_INTEGER
-      const bDuration = b.durationUsedSeconds ?? Number.MAX_SAFE_INTEGER
-      if (aDuration !== bDuration) return aDuration - bDuration
-
-      const aDate = a.createdAt?.seconds
-        ? new Date(a.createdAt.seconds * 1000)
-        : new Date(a.date || 0)
-
-      const bDate = b.createdAt?.seconds
-        ? new Date(b.createdAt.seconds * 1000)
-        : new Date(b.date || 0)
-
+      // Test history should show the newest completed attempt first.
       return bDate - aDate
     })
-    .slice(0, 25)
     .map((entry, index) => ({
       ...entry,
-      displayRank: index + 1,
+      displayNumber: index + 1,
     }))
 })
 
-function openLeaderboard() {
+function getEntryDate(entry) {
+  if (entry.createdAt?.seconds) {
+    return new Date(entry.createdAt.seconds * 1000)
+  }
+
+  if (entry.createdAt) {
+    return new Date(entry.createdAt)
+  }
+
+  if (entry.date) {
+    return new Date(entry.date)
+  }
+
+  return new Date(0)
+}
+
+function formatDate(entry) {
+  const date = getEntryDate(entry)
+
+  if (Number.isNaN(date.getTime()) || date.getTime() === 0) {
+    return "—"
+  }
+
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  })
+}
+
+function formatTime(entry) {
+  const date = getEntryDate(entry)
+
+  if (Number.isNaN(date.getTime()) || date.getTime() === 0) {
+    return "—"
+  }
+
+  return date.toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  })
+}
+
+function formatDuration(seconds) {
+  const totalSeconds = Number(seconds)
+
+  if (!Number.isFinite(totalSeconds) || totalSeconds < 0) {
+    return "—"
+  }
+
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const remainingSeconds = Math.floor(totalSeconds % 60)
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m ${remainingSeconds}s`
+  }
+
+  if (minutes > 0) {
+    return `${minutes}m ${remainingSeconds}s`
+  }
+
+  return `${remainingSeconds}s`
+}
+
+function openHistory() {
   isOpen.value = true
 }
 
-function closeLeaderboard() {
+function closeHistory() {
   isOpen.value = false
 }
 
@@ -71,27 +128,16 @@ function resetFilters() {
   selectedTimeLimit.value = null
 }
 
-function rankClasses(rank) {
-  if (rank === 1) {
-    return "bg-yellow-100 dark:bg-yellow-950/40 text-yellow-800 dark:text-yellow-200"
+function resultClasses(entry) {
+  if (entry.passed) {
+    return "bg-blue-100 dark:bg-blue-950/40 text-blue-800 dark:text-blue-200"
   }
 
-  if (rank === 2) {
-    return "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-100"
-  }
-
-  if (rank === 3) {
-    return "bg-orange-100 dark:bg-orange-950/40 text-orange-800 dark:text-orange-200"
-  }
-
-  return "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200"
+  return "bg-red-100 dark:bg-red-950/40 text-red-800 dark:text-red-200"
 }
 
-function rankLabel(rank) {
-  if (rank === 1) return "🥇"
-  if (rank === 2) return "🥈"
-  if (rank === 3) return "🥉"
-  return `#${rank}`
+function resultLabel(entry) {
+  return entry.passed ? "Passed" : "Did Not Pass"
 }
 </script>
 
@@ -100,9 +146,9 @@ function rankLabel(rank) {
     <button
       type="button"
       class="hover:bg-slate-100 dark:hover:bg-slate-800 px-5 py-3 border border-slate-300 dark:border-slate-700 rounded-2xl font-semibold text-slate-700 dark:text-slate-200 transition"
-      @click="openLeaderboard"
+      @click="openHistory"
     >
-      View Leaderboard
+      View Test History
     </button>
 
     <div
@@ -119,28 +165,29 @@ function rankLabel(rank) {
             <p
               class="font-semibold text-blue-600 dark:text-blue-400 text-sm uppercase tracking-[0.2em]"
             >
-              Leaderboard
+              Test History
             </p>
             <h2
               class="mt-1 font-bold text-slate-900 dark:text-white text-2xl md:text-3xl"
             >
-              Top 25 Test Takers
+              Completed Test Attempts
             </h2>
             <p class="mt-2 text-slate-600 dark:text-slate-300 text-sm">
-              Ranked by highest score, then fastest completion time.
+              Every completed test attempt is saved here with score, date, and
+              completion time.
             </p>
           </div>
 
           <button
             type="button"
             class="hover:bg-slate-100 dark:hover:bg-slate-800 p-3 rounded-2xl text-slate-500 dark:text-slate-300 transition"
-            @click="closeLeaderboard"
+            @click="closeHistory"
           >
             ✕
           </button>
         </div>
 
-        <div class="p-6 md:p-8 overflow-y-auto">
+        <div class="p-6 md:p-8 max-h-[calc(90vh-140px)] overflow-y-auto">
           <div class="gap-3 grid sm:grid-cols-[1fr_1fr_auto] mb-6">
             <select
               v-model="selectedQuestionCount"
@@ -183,28 +230,27 @@ function rankLabel(rank) {
             <div
               v-for="entry in filteredEntries"
               :key="entry.id"
-              class="flex sm:flex-row flex-col justify-between sm:items-center gap-4 bg-slate-50 dark:bg-slate-800 p-4 border border-slate-200 dark:border-slate-700 rounded-2xl transition-colors"
+              class="flex lg:flex-row flex-col justify-between lg:items-center gap-4 bg-slate-50 dark:bg-slate-800 p-4 border border-slate-200 dark:border-slate-700 rounded-2xl transition-colors"
             >
               <div class="flex items-center gap-4">
                 <div
-                  class="flex justify-center items-center rounded-full w-12 h-12 font-bold shrink-0"
-                  :class="rankClasses(entry.displayRank)"
+                  class="flex justify-center items-center bg-slate-100 dark:bg-slate-700 rounded-full w-12 h-12 font-bold text-slate-700 dark:text-slate-200 shrink-0"
                 >
-                  {{ rankLabel(entry.displayRank) }}
+                  #{{ entry.displayNumber }}
                 </div>
 
                 <div>
                   <p class="font-semibold text-slate-900 dark:text-white">
-                    {{ entry.name }}
+                    {{ entry.name || "Test Attempt" }}
                   </p>
                   <p class="text-slate-500 dark:text-slate-400 text-sm">
                     {{ entry.questionCount }} questions •
-                    {{ entry.timeLimitLabel }}
+                    {{ entry.timeLimitLabel || `${entry.timeLimit} minutes` }}
                   </p>
                 </div>
               </div>
 
-              <div class="gap-6 grid grid-cols-2 text-sm">
+              <div class="gap-6 grid grid-cols-2 md:grid-cols-4 text-sm">
                 <div>
                   <p class="text-slate-500 dark:text-slate-400">Score</p>
                   <p class="font-bold text-slate-900 dark:text-white text-lg">
@@ -213,9 +259,29 @@ function rankLabel(rank) {
                 </div>
 
                 <div>
+                  <p class="text-slate-500 dark:text-slate-400">Result</p>
+                  <span
+                    class="inline-flex mt-1 px-3 py-1 rounded-full font-bold text-xs"
+                    :class="resultClasses(entry)"
+                  >
+                    {{ resultLabel(entry) }}
+                  </span>
+                </div>
+
+                <div>
+                  <p class="text-slate-500 dark:text-slate-400">Time</p>
+                  <p class="font-semibold text-slate-900 dark:text-white">
+                    {{ formatDuration(entry.durationUsedSeconds) }}
+                  </p>
+                </div>
+
+                <div>
                   <p class="text-slate-500 dark:text-slate-400">Date</p>
                   <p class="font-semibold text-slate-900 dark:text-white">
-                    {{ entry.date || "—" }}
+                    {{ formatDate(entry) }}
+                  </p>
+                  <p class="text-slate-500 dark:text-slate-400 text-xs">
+                    {{ formatTime(entry) }}
                   </p>
                 </div>
               </div>
@@ -224,10 +290,10 @@ function rankLabel(rank) {
 
           <div v-else class="py-8 text-center">
             <p class="font-semibold text-slate-900 dark:text-white text-lg">
-              No leaderboard entries found
+              No test history found
             </p>
             <p class="mt-2 text-slate-500 dark:text-slate-400 text-sm">
-              Submit a test to appear here.
+              Complete a test to add a new attempt here.
             </p>
           </div>
         </div>
